@@ -1,0 +1,86 @@
+---
+title: "Exercise 2: Plotting"
+author: "Gloria Grace"
+output:
+  prettydoc::html_pretty
+---
+
+```{r setup, message=FALSE}
+library(tidyverse)
+library(scales)
+library(gapminder)
+```
+
+```{r health-and-wealth}
+# start with data from the Gapminder package
+gapminder %>%
+  filter(year == 2007) %>% 
+  ggplot() +
+  
+  #adds the x and y axis label
+  aes(x = gdpPercap, y = lifeExp) +
+  
+  #adds the points in the graph
+  geom_point(alpha = .6) +
+  
+  coord_cartesian(ylim = c(20,90)) +
+  
+  #categorize continent and assigned it with different colors. 
+  aes(color = continent) +
+  
+  #differ the population by the sizes of the points.
+  aes(size = pop) +
+  
+  #specify the x variables range
+  scale_x_continuous(breaks = c(400, 4000, 40000), trans = "log10") +
+  
+  #Adding the unit and changing the x and y variables
+  labs(x = "GDP per Capita", y = "Life Expectancy (years)") +
+  
+  #Changing the label of what each size and color represent.
+  labs(color = "Continent", size = "Population") +
+  
+  #Changing the population numbers to commas
+  scale_size_area(labels = label_comma()) +
+  
+  #Adding the outline of the graph
+  theme_bw() +
+  
+  #Adding logstick that are visible in the x variable line.
+  annotation_logticks(sides = "b")
+```
+```{r wealth and health}
+# start with data from the Gapminder package
+
+gapminder %>%
+  filter(year == 1952) %>% 
+  ggplot() +
+  
+  #adds the x and y axis label
+  aes(x = gdpPercap, y = lifeExp) +
+  
+  #adds the points in the graph
+  geom_point(alpha = .6) +
+  
+  coord_cartesian(ylim = c(20,90)) +
+  
+  #categorize continent by differing the color and categorize population by differing the sizes.
+  aes(size = pop, color = continent) +
+  
+  #specify the x variables range
+  scale_x_continuous(breaks = c(400, 4000, 40000), trans = "log10", labels = label_comma()) +
+  
+  #Adding the x and y and also the color and size label.
+  labs(x = "GDP per Capita", y = "Life Expectancy (years)", color = "Continent", size = "Population") +
+  
+  #Changing the population numbers to commas
+  scale_size_area(labels = label_comma()) +
+  
+  #Trying different themes.
+  theme_classic() +
+  
+  #Adding logstick that are visible in the x variable line.
+  annotation_logticks(sides = "b")
+  
+  
+```
