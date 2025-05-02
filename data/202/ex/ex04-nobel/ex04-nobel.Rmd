@@ -1,0 +1,59 @@
+---
+title: "Exercise 04 - Nobel laureates"
+author: "Gloria Grace"
+output:
+  prettydoc::html_pretty
+---
+
+### Load packages and data
+
+```{r load-packages, message=FALSE}
+library(tidyverse) 
+library(glue)
+```
+
+```{r load-data, message=FALSE}
+nobel <- read_csv("data/nobel.csv")
+```
+
+### Exercise 1
+
+There are `r ncol(nobel)` variables and `r nrow(nobel)` observations in this data set. 
+
+### Exercise 2
+
+```{r nobel living}
+nobel_living <- nobel %>%
+  filter(!is.na(country), gender != "org", is.na(died_date))
+```
+
+```{r Identify Laucrate in the US}
+nobel_living_science <- nobel_living %>% 
+  mutate(country_us = if_else(country == "USA", "USA", "Other")) %>% 
+  filter(category %in% c("Physics", "Medicine", "Chemistry", "Economics"))
+```
+
+
+### Exercise 3
+
+```{r Relationship between category of prize and Laureate in the US}
+nobel_living_science %>%
+  geom_bar(mapping = aes(x = category, y = ))
+  
+```
+
+
+
+### Exercise 4
+
+*don't add code here; instead, go back and edit the pipeline in Exercise 2*
+
+### Exercise 5
+
+
+
+### Exercise 6
+
+
+### Exercise 7 (optional)
+
