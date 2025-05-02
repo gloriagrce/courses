@@ -1,0 +1,231 @@
+---
+title: "Final Homework"
+author: "Gloria Grace"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+library(rpart.plot)
+library(Lahman)
+theme_set(theme_bw())
+```
+
+
+## Supervised Learning
+
+```{r}
+head(nasaweather::storms)
+```
+
+```{r}
+storms <- nasaweather::storms %>% mutate(type = as_factor(type))
+head(storms)
+```
+
+```{r}
+add_predictions <- function(data, model, variable_name = ".pred", model_name = deparse(substitute(model))) {
+  model %>%
+    predict(data) %>%
+    rename(!!enquo(variable_name) := .pred) %>%
+    mutate(model = model_name) %>%
+    bind_cols(data)
+}
+```
+
+
+```{r decision-tree-model}
+set.seed(0)
+model <-
+  decision_tree(mode = "classification", tree_depth = 2) %>% 
+  fit(type ~ wind + pressure, data = storms)
+
+model %>% 
+  extract_fit_engine() %>% 
+  rpart.plot()
+```
+
+```{r}
+ggplot(data = storms, aes(x = pressure, y = wind)) +
+  geom_point(data = storms %>% select(-type), alpha = .25, color = "grey") +
+  geom_point(alpha = .25, position = position_jitter(.1), color = "green") +
+  facet_wrap(vars(type))
+```
+
+## Clustering
+
+```{r}
+big_cities <- mdsr::world_cities %>% 
+  arrange(desc(population)) %>% 
+  slice_head(n = 4000)
+
+```
+
+```{r clustering}
+data_for_clustering <- big_cities %>% 
+  select(latitude, longitude)
+
+set.seed(20211119)
+clustering_results <- data_for_clustering %>% 
+  kmeans(nstart = 10, centers = 2)
+
+cities_with_clusters <- big_cities %>% 
+  mutate(cluster = as.factor(clustering_results$cluster))
+```
+
+```{r glance-clustering-results}
+glance(clustering_results)
+```
+
+```{r tidy-clustering-results}
+tidy(clustering_results)
+```
+
+Clustering with k = 2 has a high difference between one and another. But if I added another one to k = 3 the result would be more closer with each other.
+
+## Databases
+
+```{r}
+HallOfFame <- Lahman::HallOfFame
+hr <- Lahman::Batting
+people <- Lahman::People
+```
+
+```{r}
+hr_select <- hr %>% 
+  select(playerID, H, HR)
+```
+
+```{r}
+names <- people %>% 
+  select(nameFirst, nameLast, playerID)
+```
+
+```{r}
+hr_select %>% 
+  filter(HR == 500)
+  
+hr_select %>% 
+  filter(H == 3000)
+```
+
+There is no more player that have not been inducted into the Baseball Hall of Fame. In the Batting Data, there isn't any players that hit either 500 home runs or 3000 hits. 
+
+## Text Data
+
+```{r text-macbeth}
+macbeth_url <- "http://www.gutenberg.org/cache/epub/1129/pg1129.txt"
+#macbeth_raw <- read_file(macbeth_url)
+data(Macbeth_raw, package = "mdsr")
+```
+
+```{r length}
+macbeth <- Macbeth_raw %>% 
+  stringi::stri_split_lines() %>%
+  pluck(1)
+
+```
+
+```{r regex detect}
+pattern <- "\\s + \\s + [A-Z] + \\."
+macbeth %>% 
+  str_detect(pattern) %>% 
+  sum()
+```
+There is no speaking lines in Macbeth.
+
+
+```{r names-dataset}
+baby_n <- babynames::babynames %>%
+  filter(sex == 'M') %>% 
+  select(name) %>% 
+  stringi::stri_split_lines() %>%
+  pluck(1)
+
+```
+
+```{r popular-names}
+name <- "George"
+name1 <- "Joe"
+name2 <- "Charlie"
+name3 <-"Jesse"
+name4 <- "Diego"
+name5 <- "Eugene"
+name6 <- "Leo"
+name7 <- "Luke"
+name8 <- "Joshua"
+name9 <- "Dave"
+name10 <- "Jake"
+```
+
+The most popular name out of the 10 names is Leo and Joe as the second most popular. 
+
+```{r george}
+baby_n %>% 
+  str_detect(name) %>% 
+  sum()
+```
+```{r joe}
+baby_n %>% 
+  str_detect(name1) %>% 
+  sum()
+```
+```{r}
+baby_n %>% 
+  str_detect(name2) %>% 
+  sum()
+```
+```{r}
+baby_n %>% 
+  str_detect(name3) %>% 
+  sum()
+```
+ 
+```{r}
+baby_n %>% 
+  str_detect(name4) %>% 
+  sum()
+```
+
+```{r}
+baby_n %>% 
+  str_detect(name5) %>% 
+  sum()
+```
+```{r}
+baby_n %>% 
+  str_detect(name6) %>% 
+  sum()
+```
+```{r}
+baby_n %>% 
+  str_detect(name7) %>% 
+  sum()
+```
+
+```{r}
+baby_n %>% 
+  str_detect(name8) %>% 
+  sum()
+```
+```{r}
+baby_n %>% 
+  str_detect(name9) %>% 
+  sum()
+```
+```{r}
+baby_n %>% 
+  str_detect(name10) %>% 
+  sum()
+```
+This code didn't work because there are \ and " that are considered as the end of the name. I don't know how to remove those characters and ended up looking for the names manually.
+```{r}
+baby_n %>% 
+  str_detect("[aiueo]$") %>% 
+  sum()
+```
+
+```
