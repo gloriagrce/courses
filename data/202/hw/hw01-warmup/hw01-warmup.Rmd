@@ -1,0 +1,63 @@
+---
+title: "Homework 1: Warmup"
+author: "Gloria Grace"
+output:
+  prettydoc::html_pretty
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages
+
+```{r packages, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Read Data
+
+```{r read-data, message=FALSE}
+daily_rides <- read_csv("data/day_simple.csv")
+```
+
+# Exercise 1
+
+The data set contains four rows and six rows in total for including the cols().
+Inside the cols(), in the four rows, each line has a variable that is assigned to a function. 
+The first row represents date, the second row represents the day of the week, the third row represents whether the day is considered a holiday or weekday, or weekend, and the last row represents the number of users that register for a Capital Bikeshare account that day.
+
+# Exercise 2
+
+The following plot shows the total number of rides each day.
+
+```{r rides-by-day}
+
+ggplot(data = daily_rides, mapping = aes(x = date, y = total_rides)) +
+  geom_point() +
+  geom_smooth() +
+  labs(x = "date", y = "number of rides") 
+ 
+```
+
+# Exercise 3
+
+The following plot shows the total number of rides for weekdays vs weekends.
+
+``````{r rides-by-weekday or weekend}
+
+ggplot(data = daily_rides, mapping = aes(x = date, y = total_rides)) +
+  geom_point() +
+  geom_smooth() +
+  labs(x = "date", y = "number of rides") +
+  aes(color = workingday)
+ 
+```
+
+
+
+# Exercise 4
+
+The number of rides on workdays are much more large than in the weekend, assuming that people use Capital Bikeshares to go to work. 
+
