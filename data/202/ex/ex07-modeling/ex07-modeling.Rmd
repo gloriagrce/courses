@@ -1,0 +1,102 @@
+---
+title: "Guided Exercise 7 - Modeling"
+author: "Gloria Grace"
+output: prettydoc::html_pretty
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "")
+library(tidyverse)
+library(tidymodels)
+theme_set(theme_bw())
+```
+
+
+```{r load-and-subset-data}
+# Get the data from the "modeldata" package, which comes with tidymodels.
+data(ames, package = "modeldata")
+ames <- ames %>% 
+  filter(Gr_Liv_Area < 4000, Sale_Condition == "Normal") %>% 
+  mutate(Sale_Price = Sale_Price / 1000)
+```
+
+## Exercise 1
+
+We are working with `r nrow(ames)` homes.
+
+## Exercise 2
+
+```{r sales-price-related-to-living-areas}
+ames %>% 
+  ggplot(aes(x = Gr_Liv_Area,
+             y = Sale_Price)) +
+  geom_point(size = 0.1, alpha = 0.2) +
+  facet_wrap(vars(Bldg_Type))+
+  labs(x = "Sale Price ($1k)",
+       y = "above-grade living area (ft^2)")
+```
+```{r split-data}
+set.seed(1234)
+
+# Split our data randomly
+ames_split <- initial_split(ames, prop = 2/3) 
+ames_train <- training(ames_split)
+ames_test <- testing(ames_split)
+```
+
+## Exercise 3
+
+There are `r nrow(ames_train)` homes sales.
+
+```{r predictions-model-object}
+decision_tree_fit <- fit(
+  decision_tree(mode = "regression", tree_depth = 3),
+  
+  Sale_Price ~ Gr_Liv_Area + Bldg_Type,
+  
+  data = ames_train)
+```
+
+```{r showing-model-object}
+decision_tree_fit
+```
+
+```{r visual-representation-tree-fit}
+decision_tree_fit %>% 
+  extract_fit_engine() %>% 
+  rpart.plot::rpart.plot(roundint = FALSE)
+```
+
+## Exercise 4
+
+The tree divide the data into 8 groups. 
+
+```{r model-predictions}
+ames_train_predictions <-
+  decision_tree_fit %>% 
+    predict(ames_train)
+ames_train_predictions
+```
+
+## Exercise 5
+
+The model make `r nrow(ames_train_predictions)` predictions. 
+
+```{r}
+bind_cols(ames_train_predictions, ames_train)
+```
+
+```{r compare-predictions}
+ames_train_predictions <- 
+  decision_tree_fit %>% 
+    predict(ames_train) %>% 
+    bind_cols(ames_train)
+```
+
+```{r sales-price-and-predictions-plot}
+ames_train_predictions %>% 
+  ggplot(aes(x = Sale_Price, y = .pred))+
+  geom_point()+
+  scale_y_continuous(breaks = c(-200, -100, 0, 100, 200, 300))
+```
+
