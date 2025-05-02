@@ -1,0 +1,190 @@
+---
+title: "Differences Weight Status in Youth Screen Time Percentage."
+author: "Gloria Grace"
+output:
+  prettydoc::html_pretty
+#knit: pagedown::chrome_print
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Overview
+
+The article can be found in: https://www.cdc.gov/nchs/data/databriefs/db157.pdf 
+
+Original visualization:
+
+```{r original-plot, echo=FALSE}
+knitr::include_graphics("https://api.time.com/wp-content/uploads/2014/07/screen-shot-2014-07-09-at-10-45-33-am.png")
+```
+
+
+Claim:
+
+"As weight status increased, the percentage of youth aged 12–15 who reported 2 hours or less of TV plus computer use decreased. Among underweight or normal-weight youth, 30.6% reported 2 hours or less of TV plus computer use daily compared with 23.1% and 20.0% for their overweight and obese peers, respectively. As weight status increased, the percentage of youth who watched TV for 2 hours or less daily decreased.
+
+
+
+## Design
+
+<!-- What overall type of visualization was chosen? Why might the author have chosen it? -->
+The visualization type that was chosen by the author is bar graph. Considering that the author is trying to compare how either TV or Computer or even both affected on a person weight status, by using a bar graph, if there are drastic differences with one another, it might be easy to tell which one is at the higher percentage than the other. 
+
+<!-- What variables are being shown? -->
+In the graph, the variable that are being shown are technology type, weight status, and percentage of people who use a technology for 2 hours daily.
+
+<!-- What retinal variables and/or aesthetics were chosen to represent those data variables? -->
+The aesthetics that were chosen to represent the weight status is color. 
+Dark blue represents people who are underweight or normal, green represents people who are overweight, and light blue represents the people who are obese. 
+
+<!--     For at least one of these variables, describe what makes that choice appropriate or inappropriate. -->
+The choice of making color as an aesthetic is appropriate because the color that are assigned between the weight status make it possible to differentiate each other when is next to one another. 
+
+<!-- Overall, what about the visual makes it effective, or ineffective, for making its claim? -->
+As seen in the TV and computer type, the percentage for each weight status progressively going down. Overall, by placing the weight status based on the technology type, it is effective to make a claim that as weight status increased, the percentage of people who watch for 2 hours daily decrease because by placing it next to each other, the height difference can be seen clearly.
+
+## Data
+
+### Data Overview
+
+<!-- Whether you were able to find the original data (if not, why not?) -->
+I was able to find the original data.
+
+<!-- Where the data came from -->
+The data came from CDC/NCHS, National Health and Nutrition Examination Survey (NHANES) and NHANES National Youth Fitness Survey.
+
+<!--     Direct URL and/or specific instructions for how to obtain it. -->
+Data table can be accessed at: http://www.cdc.gov/nchs/data/databriefs/db157_table.pdf#4.
+
+<!--     Under what terms is the source allowing you to use the data? -->
+At the end of the research, it is stated in the copyright information that "All material appearing in this report is in
+the public domain and may be reproduced or copied without permission; citation as to source, however, is appreciated."
+
+<!--     What processing may have happened to it: was it aggregated? Anonymized? etc. -->
+For the weight samples, it accounts for the differential probabilities of selection, nonresponse,
+and noncoverage, were incorporated into the estimation process. The standard errors of the
+percentages were estimated using Taylor series linearization, a method that incorporates the
+sample design.
+
+<!-- What might we need to know about the data collection process in order to interpret the data correctly? (e.g., If it’s from a survey–who was surveyed?) -->
+
+Both NHANES and NNYFS collected TV watching and computer use through a questionnaire administered in the home.
+Participants were then asked to attend a standardized physical examination in specially equipped
+mobile centers. 
+
+### Data Details
+
+<!-- A low-level description of the size and structure of the data (include your data-loading code here) -->
+
+```{r load-data}
+weight_status <- read_csv("data/Weight Status.csv")
+
+weight_status
+```
+The data has a total of 9 observations and 7 variables of column. 
+
+<!-- What does each row represent? -->
+Each row represent the observation of the technology type, hours length of technology correlating with weight status.
+
+<!-- How many rows are there? (use inline code: `r nrow(data)` etc.) -->
+There are `r nrow(weight_status)` rows in total in the data set. 
+
+<!--   What might be interesting to know about what information the data does, and doesn’t, provide? -->
+Knowing the relation between the usage length of youth's screen time and their weight status might be quite interesting. Examining how long the usage affects weight status more specific also can be interesting, , the data set only categorized into three and limited to information of how various hours of usage can affect either more or less. 
+
+### Wrangling
+
+<!-- Describe, at a broad level, what you need to do to the data to make it into the form you need for the plot. -->
+To make the graph, I would have to filter out columns that are not relevant or variables that won't be included in the graph. 
+
+<!-- Add code blocks, with appropriate names, for wrangling steps. -->
+```{r filtering-columns}
+weight_status_wrangling <- weight_status %>% 
+  select(`Technology`, `Weight Status`, Percent) %>% 
+  arrange(desc(`Technology`))
+
+weight_status_wrangling
+
+```
+
+I chose to select the columns that are only included in the graph from the original data to make it easier to focus on. I choose to arrange the data to make sure that I replicate the order the same as the original data. 
+
+## Replication
+
+<!-- Include your code to replicate the visual, and the result. -->
+```{r visualization-replication}
+weight_status_wrangling %>% 
+  ggplot(mapping = aes(x = Technology, y = Percent, fill = `Weight Status`)) +
+  scale_fill_manual(values = c("Underweight or normal Weight" = "#052c59",
+                               "Overweight" = "#6c9d41",
+                               "Obese" = "#95a2c2"))+
+  geom_col(position = "dodge", width = 0.6)+
+  geom_text(aes(label = Percent))+
+  scale_x_discrete(limits = c("TV plus computer", "TV", "Computer"))+
+  labs(x = NULL, fill = NULL)+
+  theme_classic()+
+  theme(legend.position = "top")
+  
+  
+  
+```
+
+<!-- Briefly describe any difficulties you encountered, both those you overcame and those you still have not. -->
+There are a few difficulties I encountered. The first one is to use a position for geom colon because geom bar does not let two variables for it. It only allows either x or y axis. Then, I have to figure out how to position the legend to the top. I had to figure out how to color the graph specific to one type and to look for the rgb colors on it as well. I have to spend quite amount of time to arrange the graph too, I tried to modify it in the table but in the graph it won't differs. I also could not figure out how to put numbers on top of each bar.
+
+<!-- It’s ok to not have a perfect graph here. If the essential structure is there, don’t worry if the details are a bit different. Focus your attention on making an interesting and polished alternative design. -->
+
+## Alternatives
+
+### Design
+
+<!-- Describe at least two alternative design choices that could be made in visualizing your data. For each design, include: -->
+<!--     What choice did the original visual make? (e.g., to use a particular aesthetic mapping or glyph) -->
+<!--     What’s an alternative choice? (It should be a reasonable choice, but it doesn’t have to be an improvement.) -->
+<!--     How does that change affect how the visual supports the original claim? Can your redesign now support some different claim? -->
+
+One alternative design would be switching the technology type with the weight status whereas the original use their original graph to see how each technology connected to a person's weight status. This alternative choice would allow me to discover a different claim. The changes can help to see which technology affected the weight status more, does it make a difference? 
+
+The other alternative design would be using facet grid to see more clearly of the difference between the technology with different weight statuses. The claim could be change because instead of looking at the number percentage of people that uses a technology, here would be looking at the weight status that might be affected by various technology type. 
+
+### Implementation
+
+<!-- Make a solid attempt to implement your best alternative design. -->
+<!--     If creating it using ggplot/plotly/etc is too challenging, you may include a high-fidelity sketch of what the plot would look like (using PowerPoint or a vector graphics tool), along with a clear description of what you’d need to figure out in order to produce it with code. -->
+
+```{r alternative-graph}
+weight_status_wrangling %>% 
+  ggplot(aes(x = Percent,y = Technology, fill = `Weight Status`))+
+  scale_fill_manual(values = c("Underweight or normal Weight" = "#999999",
+                               "Overweight" = "#E69F00",
+                               "Obese" = "#56B4E9"))+
+  geom_col(position = "dodge")+
+  facet_grid(vars(`Weight Status`))+
+  labs(y = NULL, fill = NULL, 
+       title = "How 2 Hours of Screen Time Could Affect Different Weight Statuses")+
+  theme(legend.position = "top")
+```
+
+
+## Summary
+
+<!-- Now that you’ve gone through the whole process, how has your understanding of, and belief in, the original article’s claim changed? -->
+I would say that there are many possible outcomes and claim for a single data gathered. It can mean various thing based on how we want to compare and use it. I believe that a data should be fully accurate and filter the things that are valid because I would say that if people manipulate data by selecting the filtering data freely, 
+
+<!-- How faithful was your replication? -->
+My replication was faithful because there is no rows of data that I taken out from the data and I use it fully to make the claim or point taken from the graph valid. 
+
+<!-- How successful was your alternative design? -->
+I would say that I was partially success with my alternative design, I was hoping for people to be able to see the differences between picking TV, computer, or both and where has it have affect on each or not. As we can see from the graph, the differences are noticeable. Besides that, a thing that I want to figure out is the label "Underweight or normal weight" to be visible fully. 
+
+<!-- What follow-up questions and ideas do you have about the data or visualization you worked with? -->
+When gathering the data, do they calculate and gather everyone's weight and height and also calculate to categorize a person's weight status based on it to make the data that they have valid? If the hours were differ and add a new variable of watch hours, would there be significant changes in the weight status based on their screen time?
+
+<!-- What opportunities do you see for extending this work into a final project? e.g., is there some way you could apply predictive modeling? Get better data? Do a more rigorous analysis? etc. “This seems like a dead end” is valid. -->
+I would be interested if this data expanded into different screen time hours considering this data only gathers people who used technology for 2 hours daily where in predictive modeling maybe could predict how many hours affected a person's daily routines or else.
+
+<!-- How do you feel about this whole experience? -->
+This whole experience has been interesting and intriguing, I got to learn data wrangling and modeling more and understand it more as well. I got to learn how to upload and get a csv data from excel and make a visualization out of it as well. I enjoy this project because I can try different things to edit the graph and do things I never tried before. 
