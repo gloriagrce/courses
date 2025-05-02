@@ -1,0 +1,114 @@
+---
+title: "Exercise 05 - Visualizing Spatial Data"
+author: "Gloria Grace"
+output:
+  prettydoc::html_pretty
+---
+
+### Load packages and data
+
+```{r load-packages, message=FALSE}
+library(tidyverse) 
+```
+
+```{r load-data, message=FALSE}
+dennys <- read_rds("data/dennys.rds")
+laquinta <- read_rds("data/laquinta.rds")
+states <- read_csv("data/states.csv", col_types = cols(
+  name = col_character(),
+  abbreviation = col_character(),
+  area = col_double()
+))
+```
+
+### Exercise 1
+
+In the Denny's data set there is `r nrow(dennys) ` observations and `r ncol(dennys) ` variables. 
+Each row represent an observation of each Denny's dining location information. The variables are address, city, state, zip, longitude, and latitude.
+
+### Exercise 2
+
+In the La Quinta's data set there is `r nrow(laquinta) ` observations and `r ncol(laquinta) ` variables.
+Each row represent an observation of La Quinta Inn and Suites location information. The variables are the same with Denny's data set which are address, city, state, zip, longitude, and latitude.
+
+
+### Exercise 3
+
+```{r Denny's location outside US}
+dennys %>% 
+  filter(!(state %in% states$abbreviation))
+```
+
+
+### Exercise 4
+
+```{r Adding US as the country}
+dennys <- dennys %>% 
+  mutate(country = 'United States')
+```
+
+
+### Exercise 5
+
+```{r La Quinta's location outside the US}
+laquinta %>% 
+  filter(!(state %in% states$abbreviation))
+```
+
+
+### Exercise 6
+
+```{r Adding country to the La Quinta data set}
+laquinta <-laquinta %>%
+  mutate(country = case_when(
+    state %in% state.abb     ~ "United States",
+    state %in% c("ON", "BC") ~ "Canada",
+    state == "ANT"           ~ "Colombia",
+    state %in% c("AG", "QR", "CH", "NL", "VE", "PU", "SL") ~ "Mexico",
+    state == "FM" ~ "Honduras"
+  ))
+
+```
+
+```{r Filter }
+laquinta <- laquinta %>% 
+  filter(country == "United States")
+```
+
+
+### Exercise 7
+
+```{r Largest and Lowest number Denny's locations}
+dennys %>% 
+  group_by(state) %>% 
+  summarise(total = n()) %>% 
+  arrange(desc(total))
+```
+The CA state has the most Denny's location whereas PA has the fewest.
+
+```{r Largest and Lowest number La Quinta's locations}
+laquinta %>% 
+  group_by(state) %>% 
+  summarise(total = n()) %>% 
+  arrange(desc(total))
+  
+```
+For La Quinta, their inns most located is in TX whereas the fewest locations would be both NM and NY. 
+
+### Exercise 8
+
+```{r}
+dennys <- dennys %>% 
+  left_join(states, by = c("state" = "abbreviation"))
+```
+
+
+### Exercise 9
+
+
+### Exercise 10
+
+
+### Exercise 11
+
+
