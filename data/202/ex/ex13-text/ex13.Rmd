@@ -1,0 +1,105 @@
+---
+title: "Text"
+author: "Gloria Grace"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+## MacBeth
+
+```{r text}
+macbeth_url <- "http://www.gutenberg.org/cache/epub/1129/pg1129.txt"
+#macbeth_raw <- read_file(macbeth_url)
+data(Macbeth_raw, package = "mdsr")
+```
+
+```{r length}
+macbeth <- Macbeth_raw %>% 
+  stringi::stri_split_lines() %>%
+  pluck(1)
+length(macbeth)
+```
+## Finding Matches
+
+```{r look-patterns}
+pattern <- "MACBETH"
+macbeth %>% str_detect(pattern) %>% sum()
+```
+```{r filter-lines-contain-pattern}
+macbeth %>% str_subset(pattern) %>% head()
+
+```
+
+```{r filter-lines-contain-pattern-length}
+macbeth %>% str_subset(pattern) %>% length()
+
+```
+
+```{r macduff-pattern}
+pattern1 <- "MACDUFF"
+macbeth %>% 
+  str_subset(pattern1) %>% 
+  length()
+```
+
+## Exercise 1
+
+ There are 208 lines contain MACBETH and 80 lines contain MACDUFF.
+ 
+## Regex Patterns
+
+```{r regex-pattern-anything}
+pattern <- "MAC."
+macbeth %>% 
+  str_subset(pattern) %>% 
+  head()
+```
+```{r}
+macbeth %>% 
+  str_subset(pattern) %>% 
+  str_extract(pattern) %>% 
+  head()
+```
+
+```{r regex-pattern-character set}
+pattern <- "MAC[BD]"
+macbeth %>% 
+  str_subset(pattern) %>% 
+  head()
+```
+
+```{r range-of-characters}
+pattern <- "MAC[D-H]"
+macbeth %>% str_subset(pattern) %>% head()
+
+```
+
+## Exercise 2
+
+## Repetition
+```{r repetition}
+macbeth %>% str_subset("^ +L")
+
+```
+
+
+## Execise 3
+
+```{r}
+c("", "la", "laa", "lala", "lalala", "lalalala")
+```
+
+
+## Exercise 4
+
+## Exercise 5
+
+
+
+
+
