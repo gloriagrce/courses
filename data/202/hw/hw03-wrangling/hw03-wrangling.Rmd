@@ -1,0 +1,113 @@
+---
+title: "Homework 3: Bike Sharing Data Wrangling"
+author: "Gloria Grace"
+output: prettydoc::html_pretty
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+# Import some functions from lubridate using less confusing names
+get_year <- lubridate::year; get_month <- lubridate::month; get_day <- lubridate::day; get_weekday <- lubridate::wday
+
+# Disable a warning message.
+options(dplyr.summarise.inform = FALSE)
+```
+
+
+## Load Data
+
+```{r load-data}
+# Read the file, specifying data types for each column.
+rides_2011 <- read_csv("data/rides_2011.csv.xz", col_types = cols(
+  start_time = col_datetime(),
+  duration = col_double(),
+  rider_type = col_factor()
+))
+```
+
+## Exercise 1
+
+There are `r nrow(rides_2011)` observation and `r ncol(rides_2011)` variables in this data set.
+For each ride in the data frame, it is also given the start time, duration of the ride and its rider type.
+
+## Exercise 2
+
+```{r adding duration-hour}
+rides_2011 %>% 
+  mutate(duration_hour = duration / 60) %>% 
+  arrange(round(duration_hour, digits = 5))
+```
+
+By looking at the data, I would assume that the unit that duration uses is minutes.
+
+## Exercise 3
+
+```{r Sum rider types}
+rides_2011 %>% 
+  group_by(rider_type) %>% 
+  summarise(rides = n())
+```
+
+## Exercise 4
+
+```{r daily date rides}
+daily_rides <- rides_2011 %>% 
+  mutate(year = get_year(start_time), 
+         month = get_month(start_time), 
+         day = get_day(start_time)) %>% 
+  group_by(year, month, day) %>% 
+  summarise(rides = n())
+```
+
+
+## Exercise 5
+
+In the daily-rides data frame there is `r nrow(daily_rides)` rows or observation. I think it should have 365 because the data is based on the year of 2011 where one year equals 365 days. 
+
+## Exercise 6
+
+```{r daily rides based on rider type}
+daily_rides_by_type <- rides_2011 %>%
+  mutate(year = get_year(start_time), 
+         month = get_month(start_time), 
+         day = get_day(start_time)) %>% 
+  group_by(year, month, day, rider_type) %>% 
+  summarise(rides = n())
+```
+
+## Exercise 7
+
+```{r labeling weekdays}
+rides_2011 <- rides_2011 %>% 
+  mutate(weekday = get_weekday(start_time, label = TRUE)) %>% 
+  filter(rider_type != "Unknown") 
+
+```
+```{r distribution rides by week}
+rides_by_week <- rides_2011 %>% 
+  group_by(weekday, rider_type) %>% 
+  summarise(rides = median(n()))
+  
+```
+
+```{r Rides by week plot}
+ggplot(data = rides_by_week, mapping = aes(x = weekday, y = rides))+
+  geom_boxplot(aes(color = rider_type)) +
+  labs(x = "Day of Week",
+       y = "Rides",
+       color = "Type of Rider", 
+       title = "Distributions of rides by day of week") 
+```
+
+
+## Exercise 8
+
+```{r Rides by day of week}
+rides_2011 %>% 
+  group_by(weekday, rider_type) %>% 
+  summarise(median_rides = median(n())) %>% 
+  pivot_wider(names_from = rider_type, values_from = median_rides) %>% 
+  knitr::kable()
+```
