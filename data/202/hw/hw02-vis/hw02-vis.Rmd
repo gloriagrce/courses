@@ -1,0 +1,124 @@
+---
+title: "Homework 2: Bike Sharing Data Visualization"
+author: "Gloria Grace"
+output: prettydoc::html_pretty
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+
+# Disable a warning message.
+options(dplyr.summarise.inform = FALSE)
+```
+
+Ridership Patterns to Help Evaluate the System and Potential Improvements
+
+## Read Data
+
+Read the data from the CSV file.
+
+```{r read-data, message=FALSE}
+daily_rides <- read_csv("data/day.csv")
+```
+
+The following are two different ways of getting a quick look at the data. (Which one looks better in a report? Which one is more useful to a programmer?)
+
+```{r glimpse-data}
+daily_rides %>% glimpse()
+```
+
+
+```{r head-data}
+daily_rides %>% head() %>% kable()
+```
+
+## Exercise 1: Label days of week
+
+From the data, it is shown that both of the integers 6 and 0 are weekends and 1 is a weekday. I assume that 0 is Sunday where the next day would be a weekday which is Monday.
+
+```{r label-weekdays}
+daily_rides <- daily_rides %>%
+  mutate(day_of_week = factor(day_of_week, levels = c(0, 1, 2, 3, 4, 5, 6), labels = c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")))
+```
+
+## Exercise 2: Describe a row
+
+On the winter and weekend of Saturday, January 1, 2011 it was considered as a holiday. The rider was a casual rider that had rode 331 times. 
+
+## Exercise 3: Rides by date, by rider type
+
+```{r rides-by-date-membership}
+ggplot(data = daily_rides, mapping = aes(x = date, y = rides,
+                                         color = rider_type)) +
+  geom_point(size = 1, alpha = 0.5) +
+  geom_smooth() +
+  labs(x = "Date", y = "Number of rides",
+       title = "Rides by date",
+       subtitle = "for casual and registered riders",
+       color = "Type of Rider")
+```
+
+As seen in the scatter plot, it clearly seems that registered riders have a significant higher amount of riders than the casual rider types.
+
+## Exercise 4: Mapping vs Faceting
+
+```{r rides-membership-workingday-1}
+ggplot(data = daily_rides, mapping = aes(x = date, y = rides, 
+                                         color = rider_type,
+                                         shape = workingday)) +
+  geom_point(size = 1, alpha = 0.5) +
+  geom_smooth() +
+  facet_wrap(vars(workingday), scales = "free_y") +
+  labs(x = "Date", y = "Number of rides",
+       title = "Rides by date",
+       subtitle = "for casual and registered riders",
+       color = "Type of Rider",
+       shape = "Day Type")
+```
+
+
+```{r rides-membership-workingday-2}
+ggplot(data = daily_rides, mapping = aes(x = date, y = rides, 
+                                         color = rider_type, 
+                                         shape = workingday)) +
+  geom_point(size = 1, alpha = 0.5) +
+  geom_smooth() +
+  facet_grid(rows = vars(rider_type)) +
+  labs(x = "Date", y = "Number of rides",
+       title = "Rides by date",
+       subtitle = "for casual and registered riders",
+       color = "Type of Rider",
+       shape = "Day Type")
+```
+
+On one hand, in the first code, the plot is has a more steep curve which makes it easier to identify the y of the plot. On the second hand, in the second code, the curve is more shallow. The first one would be better if people wants to identify and compare the amounts of ride and rider types based on a working day. The second plot would be better to use for comparing the number of rides on different working days and compare it based on the rider type ( so comparing registered riders on the weekend and on weekdays.)
+
+
+## Exercise 5: How does ridership vary over a typical week?
+
+```{r ride-distributions-by-weekday}
+ggplot(data = daily_rides, mapping = aes(x = day_of_week, y = rides)) +
+  geom_boxplot(aes(color = rider_type)) +
+  labs(x = "Day of Week",
+       y = "Rides",
+       color = "Type of Rider")
+```
+
+From casual riders, the amount of riders on the weekend are more high demand than on the weekdays, in contrast, for registered riders it is the other way around. 
+
+
+## Exercise 6: Plot of your choice
+
+```{r Relationship between year and }
+ggplot(data = daily_rides, mapping = aes(x = date, y = rides, color = season)) +
+  geom_point(size = 0.2) +
+  geom_smooth()+
+  facet_wrap(vars(season), scales = "free_y")+
+  labs(x = "Date", y = "Rides")
+```
+
+```
+
+Each season effects the amount of rides that people desires. 
