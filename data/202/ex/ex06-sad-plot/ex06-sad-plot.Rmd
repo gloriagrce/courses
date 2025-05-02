@@ -1,0 +1,74 @@
+---
+title: "Guided Exercise 6 - Sad plots"
+author: "Gloria Grace"
+output: prettydoc::html_pretty
+---
+
+## Load packages and data
+
+```{r load-packages, message=FALSE}
+library(tidyverse) 
+```
+
+```{r load-data, message=FALSE}
+staff <- read_csv("data/instructional-staff.csv")
+fisheries <- read_csv("data/fisheries.csv")
+```
+
+
+## Exercise 1
+
+The plot is a bar graph, the type of faculty is being mapped to y, count to x, years are mapped to fill aesthetics.
+It is easy to differentiate the percentage of the faculty based on the year in one type of faculty. It is harder to differentiate percentage of the faculty based on the types in the same year. 
+
+## Exercise 2
+
+
+
+## Exercise 3
+
+```{r Load data}
+staff <- read_csv("data/instructional-staff.csv")
+```
+```{r Re-making the plot}
+staff_longer <- staff %>% 
+  pivot_longer(
+    cols = -faculty_type,
+    names_to = "year",
+    values_to = "percentage"
+    )
+  
+  
+staff_longer %>% 
+  ggplot((mapping = aes(x = percentage, y = faculty_type, fill =  year))) +
+           geom_col(position = "dodge")+
+  scale_fill_viridis_d()+
+  labs(title = "Instructional staff employment trends, 1975-2011",
+       x = "% of faculty",
+       caption = "Source: AAUP",
+       y = NULL,
+       fill = NULL)
+
+```
+
+## Excercise 4
+
+```{r Bar Stacked version}
+staff_longer %>%
+  ggplot(aes(x = percentage, y = factor(year), fill = faculty_type)) +
+  geom_col() +
+  scale_fill_viridis_d() +
+  labs(x = "% of faculty", y = "Year", fill = "",
+       title = "Instructional staff employment trends, 1975-2011",
+       caption = "Source: AAUP") +
+  theme_minimal()
+```
+
+## Exercise 5
+
+```{r Line plot version}
+staff_longer %>% 
+  ggplot(mapping = aes(x = year, y = percentage, color = faculty_type))+
+  geom_line()
+```
+
