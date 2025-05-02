@@ -1,0 +1,90 @@
+---
+title: "Exercise 3: More Plotting"
+author: "Gloria Grace"
+output:
+  prettydoc::html_pretty
+---
+
+```{r setup, message=FALSE}
+library(tidyverse)
+library(scales)
+library(gapminder)
+
+# Put the data in the Environment
+gapminder <- gapminder::gapminder
+
+# Extract the data for the latest year in the dataset, for plots that don't involve year.
+gapminder_latest <- filter(gapminder, year == 2007)
+```
+
+
+## Styling and labeling plots
+
+```{r Life Exp and Year}
+gapminder %>% 
+  filter(country == "United States") %>% 
+  ggplot(aes(x = year, y = lifeExp, color = 'red')) +
+    geom_line() +
+  labs(x = 'Year', y = 'Life Expectancy', title = 'Life Expectancy Over The Years')
+```
+
+## Mapping vs Faceting
+
+```{r Life Expectancy in Different Countries}
+countries <- c(
+  "China", "India", "United States",
+  "Indonesia", "Brazil", "Pakistan",
+  "Bangladesh", "Nigeria", "Japan")
+
+gapminder %>% 
+  filter(country %in% countries) %>% 
+  ggplot(aes(x = year, y = lifeExp, color = country)) +
+    geom_line()
+```
+Based on the graph above, it shows countries which has high or low life expectancy over many decades which is from 1950s to 2000s.As we can see, China's life expectancy has an unstable start but keep increasing starting from the middle of 1970s.
+
+```{r Countries Facet}
+gapminder %>% 
+  filter(country %in% countries) %>% 
+  ggplot(aes(x = year, y = lifeExp)) +
+    geom_line() +
+  facet_wrap(vars(country), scales = "free_y")
+  
+```
+## Univariate analysis - Continuous
+```{r Life Expectancy Distribution}
+gapminder %>% 
+  ggplot(aes(x = lifeExp)) +
+    geom_histogram(binwidth = 5) 
+```
+
+```{r Life Exp 2 Distribution}
+gapminder %>% 
+  ggplot(aes(x = lifeExp)) +
+    geom_density(adjust = 0.5) 
+```
+## Univariate Analysis - Categorical
+
+```{r Countries Bar Plot}
+gapminder %>% 
+  filter(country %in% countries, year == 2007) %>% 
+  ggplot(aes(x = country)) +
+    geom_bar() 
+
+```
+
+## Bivariate: Relationship between numerical and categorical
+
+
+## Ridge Plots!
+
+
+```{r}
+library(ggridges)
+ggplot(gapminder_latest, aes(x = lifeExp, y = continent)) +
+  geom_density_ridges(alpha = .5)
+```
+
+
+## Is "year" discrete?
+
