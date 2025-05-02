@@ -1,0 +1,132 @@
+---
+title: "Guided Exercise 12 - Databases"
+output: 
+  html_document: default
+---
+
+---
+title: "Guided Exercise 12 - Databases"
+output: 
+  tufte::tufte_html:
+    css: ../ex.css
+    tufte_variant: "envisioned"
+    highlight: pygments
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "")
+library(tidyverse)
+theme_set(theme_bw())
+options(scipen = 5) # encourage metrics to print in fixed-point notation
+options(dplyr.summarise.inform = FALSE) # silence a warning message
+```
+
+```{r}
+library(tidyverse)
+library(mdsr)
+library(RMySQL)
+db <- DBI::dbConnect(RMariaDB::MariaDB(), dbname = "airlines", host = "mdsr.cdc7tgkkqd0n.us-east-1.rds.amazonaws.com", 
+    user = "mdsr_public", password = "ImhsmflMDSwR")
+```
+
+And we'll get references to two specific tables we'll be working with.
+
+```{r}
+flights <- tbl(db, "flights")
+carriers <- tbl(db, "carriers")
+```
+
+```{r}
+flights %>% 
+  filter(year == 2016) %>% 
+  show_query()
+```
+
+```{r}
+nrow(flights)
+```
+
+## Exercise 1
+
+The SQL expression of filter 2016 year as From the data, where 2016 is the year.
+
+```{r query-finding-rows}
+flights %>% 
+  filter(year == 2016, month == 11, distance > 1000) %>% 
+  summarize(
+    n = n(),
+    mean_dep_delay = mean(dep_delay, na.rm = TRUE)
+  ) %>% show_query()
+```
+
+```{r finding-n-rows}
+flights %>% 
+  filter(year == 2016, month == 11, distance > 2000) %>% 
+  summarize(n = n(), mean_dep_delay = mean(dep_delay, na.rm = TRUE))
+```
+
+## Exercise 2 
+
+SQL express n as count and mean as average. 
+
+
+## Exercise 3
+
+The years of data that are stored in the flights table is 2010 - 2017.
+
+```{r check-years-stored-in-data}
+flights %>% 
+  summarize(min(year, na.rm = TRUE),
+            max(year, na.rm = TRUE))
+```
+
+## Exercise 4
+
+```{r n-flights-arrived-in-JFK}
+flights %>% 
+  filter(year == 2016, month == 11, dest == 'JFK') %>% 
+  summarize(n = n())
+    
+
+```
+
+## Exercise 5
+
+```{r n-flights-by-carrier}
+flights %>% 
+  filter(year == 2016, month == 11, dest == 'JFK') %>% 
+  group_by(carrier) %>% 
+  summarize(n = n()) %>% 
+  arrange(desc(n))
+
+```
+
+## Exercise 6
+
+SQL express group by as GROUP BY and arrage as ORDER BY.
+
+```{r SQL-expression-group-by-and-arrange}
+flights %>% 
+  filter(year == 2016, month == 11, dest == 'JFK') %>% 
+  group_by(carrier) %>% 
+  summarize(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  show_query()
+
+```
+
+## Exercise 7
+
+```{r fraction-flights-on-time}
+flights %>% 
+  filter(dest == 'JFK') %>% 
+  group_by(carrier) %>% 
+  summarize(n = n(), frac_ontime = sum(arr_delay <= 15)) %>% 
+  arrange(desc(n))
+  
+
+```
+
+## Exercise 8
+
