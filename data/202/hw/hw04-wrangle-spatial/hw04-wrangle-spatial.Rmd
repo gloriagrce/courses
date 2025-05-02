@@ -1,0 +1,186 @@
+---
+title: "Homework 04 - Wrangling Spatial Data"
+author: "Gloria Grace"
+output:
+  prettydoc::html_pretty
+knit: pagedown::chrome_print
+---
+
+### Load packages and data
+
+```{r load-packages, message=FALSE}
+library(tidyverse) 
+```
+
+```{r load-data, message=FALSE}
+dennys <- read_rds("data/dennys.rds")
+laquinta <- read_rds("data/laquinta.rds")
+states <- read_csv("data/states.csv", col_types = cols(
+  name = col_character(),
+  abbreviation = col_character(),
+  area = col_double()
+))
+```
+
+### Exercise 1
+
+```{r Denny locations in Alaska}
+dn_ak <- dennys %>%
+  filter(state == "AK")
+nrow(dn_ak)
+```
+There are 3 Denny's location in Alaska.
+
+### Exercise 2
+
+```{r La quinta locations in Alaska}
+lq_ak <- laquinta %>%
+  filter(state == "AK")
+nrow(lq_ak)
+```
+There are 2 La quinta's location in Alaska.
+
+
+### Exercise 3
+
+```{r Denny and La quinta Alaska location join}
+dn_lq_ak <- full_join(dn_ak, lq_ak, by = "state", suffix = c("_dn", "_lq"))
+dn_lq_ak
+```
+
+There are a total of 6 pairings locations which also 6 times of distance calculation that needs to be done.
+
+### Exercise 4
+
+There are 6 observation in the koin dn_lq_ak data frame.
+The names of the variables in this data frame is: address_dn, city_dn, state, zip_dn, longtitude_dn, latitude_dn,address_lq, city_lq, zip_lq, longtitude_lq, latitude_lq.
+
+### Exercise 5
+
+
+```{r}
+# Implementation from dsbox
+haversine <- function(long1, lat1, long2, lat2) {
+  # convert to radians
+  long1 = long1 * pi / 180
+  lat1  = lat1  * pi / 180
+  long2 = long2 * pi / 180
+  lat2  = lat2  * pi / 180
+  
+  # Earth mean radius in km (WGS84 ellipsoid)
+  R = 6371.009
+  
+  a = sin((lat2 - lat1)/2)^2 + cos(lat1) * cos(lat2) * sin((long2 - long1)/2)^2
+  d = R * 2 * asin(sqrt(a))
+  # Return the distance in km
+  return(d)
+  }
+
+```
+
+
+```{r Adding distance}
+dn_lq_ak <- dn_lq_ak %>% 
+  mutate(distance = haversine(longitude_dn, latitude_dn, longitude_lq, latitude_lq))
+dn_lq_ak
+```
+
+
+### Exercise 6
+
+```{r la quinta-nearest-location-to-dennys}
+dn_lq_ak %>% 
+  group_by(address_lq) %>% 
+  summarise(count = n(), dist_to_nearest = round(min(distance), digits = 2))
+  
+```
+
+
+### Exercise 7
+
+Based on the result on excercise 6, the nearest La quinta location that is next to Denny's is 2.03 km and 5.20, which is possible if they are next to each other. 
+
+### Exercise 8
+
+```{r Function to calculate distance based on state.}
+
+compute_closest_dennys <- function(the_state) {
+  dn_state <- dennys %>% 
+    filter(state == the_state)
+  lq_state <- laquinta %>% 
+    filter(state == the_state)
+  
+  # join to get all possible pairings
+  dn_lq_state <- full_join(dn_state, lq_state, by = "state", suffix = c("_dn", "_lq")) %>% 
+  
+  # compute distances
+  mutate(distance = haversine(longitude_dn, latitude_dn, longitude_lq, latitude_lq)) %>% 
+  
+  # compute distance to closest Denny's for each La Quinta location.
+  group_by(address_lq, city_lq) %>% 
+  summarise(dist_to_nearest = round(min(distance), digits = 2))
+  
+  
+}
+```
+
+
+
+### Exercise 9
+
+```{r NC distance location}
+dn_lq_nc <- compute_closest_dennys("NC") %>% 
+  arrange(dist_to_nearest)
+dn_lq_nc
+```
+
+```{r distance min and median location for NC}
+dn_lq_nc %>% 
+  ungroup(address_lq) %>% 
+  summarise(min(dist_to_nearest), round(median(dist_to_nearest), digits = 2))
+
+```
+
+### Exercise 10
+
+```{r Texas distance location}
+dn_lq_tx <- compute_closest_dennys("TX") %>% 
+  arrange(dist_to_nearest)
+dn_lq_tx
+```
+
+```{r distance min and median location for TX}
+dn_lq_tx %>% 
+  ungroup(address_lq) %>% 
+  summarise(min(dist_to_nearest), round(median(dist_to_nearest), digits = 2))
+
+```
+### Exercise 11
+
+```{r California distance location}
+dn_lq_ca <- compute_closest_dennys("CA") %>% 
+  arrange(dist_to_nearest)
+dn_lq_ca
+```
+```{r distance min and median location for CA}
+dn_lq_ca %>% 
+  ungroup(address_lq) %>% 
+  summarise(min(dist_to_nearest), round(median(dist_to_nearest), digits = 2))
+
+```
+
+### Exercise 12
+
+Among all of the states that I examined, in California Mitch Hedberg's joke are most likely to hold true. The nearest distance between La quinta and Denny in california is 0.02 km and the median is 1.37 where I can conclude that there are many side-by-side in California because from the data it can be easily tell that they had the most nearest distance out of the other two states. 
+## Wrap-Up
+
+### GitHub permalink
+https://github.com/Calvin-DS202-21FA/portfolio-gloriagrce/blob/613d54a3f8a6ea5a2b108c99fd01cc90cda5f4a9/hw/hw04-wrangle-spatial/hw04-wrangle-spatial.Rmd
+
+### Reflections
+
+When working on this homework, I got stuck quite a while when I am on the function part of the code. I was frustated on how to call the code and eventually I got it to work, first I tried with the mutate and assigning the function to a variable. But then when in the function there is a code where it adds dataframe, I got confused on how to call the function without the data frame exist from the start. I am not sure that I am right but I tried calling the function and assign it to a new data frame which it works. 
+
+For the second function too, when there is "return(dist_to_closest)" it said that dist_to_closet wasn't defined, which is why I tried myself to remove the variable from the summarise() function. But then, the data that came out was not what I want it to be. Therefore, I tried to remove the return and it works. Is this how suppose to be or I luckily get passed it?
+
+It took me a couple of hours and I think I will have to focus more on calling and making a function in R studio.
