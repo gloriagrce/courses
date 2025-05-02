@@ -1,0 +1,268 @@
+---
+title: "Guided Exercise 10 - Validation"
+author: "Gloria Grace"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "")
+library(tidyverse)
+library(tidymodels)
+library(rpart.plot)
+theme_set(theme_bw())
+options(scipen = 5) # encourage metrics to print in fixed-point notation
+options(dplyr.summarise.inform = FALSE) # silence a warning message
+```
+
+
+```{r load-and-subset-data}
+# Get the data from the "modeldata" package, which comes with tidymodels.
+data(ames, package = "modeldata")
+ames_all <- ames %>% 
+  filter(Gr_Liv_Area < 4000, Sale_Condition == "Normal") %>% 
+  mutate(Sale_Price = Sale_Price / 1000)
+rm(ames)
+```
+
+
+```{r train-test-split}
+set.seed(10) # Seed the random number generator
+ames_split <- initial_split(ames_all, prop = 2 / 3) # Split our data randomly
+ames_train <- training(ames_split)
+ames_test <- testing(ames_split)
+```
+
+
+```{r}
+metrics <- yardstick::metric_set(mae, mape, rsq_trad)
+```
+
+```{r}
+add_predictions <- function(data, model, variable_name = ".pred", model_name = deparse(substitute(model))) {
+  model %>%
+    predict(data) %>%
+    rename(!!enquo(variable_name) := .pred) %>%
+    mutate(model = model_name) %>%
+    bind_cols(data)
+}
+```
+
+## Locaton, Location, Location
+
+```{r}
+ggplot(ames_train, aes(x = Longitude, y = Latitude, color = Sale_Price)) +
+  geom_point(size = .5) +
+  scale_color_viridis_c()+
+  coord_equal()
+```
+
+```{r}
+set.seed(0)
+model1 <-
+  decision_tree(mode = "regression", tree_depth = 2) %>% 
+  fit(Sale_Price ~ Latitude + Longitude, data = ames_train)
+
+```
+
+```{r}
+model1 %>% 
+  extract_fit_engine() %>% 
+  rpart.plot(roundint = FALSE, digits = 5, type = 4)
+```
+```{r}
+lat_long_grid <- expand_grid(
+  Latitude  = modelr::seq_range(ames_train$Latitude,  n = 200, expand = .05),
+  Longitude = modelr::seq_range(ames_train$Longitude, n = 200, expand = .05),
+)
+
+#augment(model1, new_data = lat_long_grid)
+lat_long_grid %>% add_predictions(model1)
+```
+```{r}
+show_latlong_model <- function(dataset, model,
+                               model_name = deparse(substitute(model))) {
+  ggplot(dataset, aes(x = Longitude, y = Latitude)) +
+    geom_raster(
+      data = add_predictions(lat_long_grid, model),
+      mapping = aes(fill = .pred)
+    ) +
+    # Draw two point layers, so each point gets a little black outline.
+    geom_point(color = "black", size = .75) +
+    geom_point(aes(color = Sale_Price), size = .5) +
+    scale_color_viridis_c(aesthetics = c("color", "fill"),
+                          limits = range(ames_train$Sale_Price)) +
+    coord_equal() +
+    labs(title = model_name)
+}
+
+show_latlong_model(ames_train, model1)
+```
+
+```{r}
+ames_train %>% 
+  add_predictions(model1) %>% 
+  mutate(resid = Sale_Price - .pred) %>% 
+  ggplot(aes(x = resid)) +
+  geom_histogram(binwidth = 10)
+```
+```{r}
+ames_train %>% 
+  add_predictions(model1) %>% 
+  # summarize(mae = mean(abs(Sale_Price - .pred)))
+  mae(truth = Sale_Price, estimate = .pred)
+```
+
+## A richer model
+
+```{r}
+model2 <-
+  decision_tree(mode = "regression", tree_depth = 30) %>% 
+  fit(Sale_Price ~ Latitude + Longitude, data = ames_train)
+```
+
+```{r}
+model2 %>% 
+  extract_fit_engine() %>% 
+  rpart.plot(roundint = FALSE, digits = 4, type = 4)
+```
+
+```{r}
+show_latlong_model(ames_train, model2)
+```
+The first model has less color combinations(depth)
+
+```{r}
+ames_train %>% 
+  add_predictions(model2) %>% 
+  mutate(resid = Sale_Price - .pred) %>% 
+  ggplot(aes(x = resid)) +
+  geom_histogram(binwidth = 10)+
+  coord_cartesian(xlim = c(-200, 400))
+
+```
+
+```{r}
+ames_train %>% 
+  add_predictions(model2) %>% 
+  mae(truth = Sale_Price, estimate = .pred)
+```
+
+## Model 3
+
+```{r}
+model3 <-
+  decision_tree(mode = "regression", cost_complexity = 1e-6, min_n = 2) %>%
+  fit(Sale_Price ~ Latitude + Longitude, data = ames_train)
+
+show_latlong_model(ames_train, model3)
+```
+
+```{r}
+ames_train %>% 
+  add_predictions(model3) %>% 
+  mutate(resid = Sale_Price - .pred) %>%
+  ggplot(aes(x = resid)) +
+  geom_histogram(binwidth = 1) +
+  coord_cartesian(xlim = c(-200, 400))
+```
+
+## Validation
+
+```{r}
+bind_rows(
+  model1 = add_predictions(ames_train, model1),
+  model2 = add_predictions(ames_train, model2),
+  model3 = add_predictions(ames_train, model3),
+  .id = "model"
+) %>% 
+  group_by(model) %>% 
+  metrics(truth = Sale_Price, estimate = .pred) %>% 
+  ggplot(aes(y = .estimate, x = model)) + geom_col() +
+  facet_wrap(vars(.metric), scales = "free_y")
+```
+
+```{r}
+bind_rows(
+  model1 = add_predictions(ames_test, model1),
+  model2 = add_predictions(ames_test, model2),
+  model3 = add_predictions(ames_test, model3),
+  .id = "model"
+) %>% 
+  group_by(model) %>% 
+  metrics(truth = Sale_Price, estimate = .pred) %>% 
+  ggplot(aes(y = .estimate, x = model)) + geom_col() +
+  facet_wrap(vars(.metric), scales = "free_y")
+```
+
+### Cross Validation
+
+```{r}
+model1_workflow <- workflow() %>% 
+  add_model(decision_tree(mode = "regression", tree_depth = 2)) %>% 
+  add_formula(Sale_Price ~ Latitude + Longitude)
+
+model1 <- model1_workflow %>% fit(ames_train)
+```
+
+## Declare a splitting strategy
+
+```{r}
+set.seed(0)
+ames_resamples <- vfold_cv(ames_train, v = 10)
+ames_resamples
+```
+
+## Fit and Evaluate each of the splits
+
+```{r}
+first_split <- ames_resamples$splits[[1]]
+first_split
+```
+
+```{r}
+first_split_fitted_model <- model1_workflow %>% 
+  fit(analysis(first_split))
+first_split_predictions <- first_split_fitted_model %>% 
+  augment(new_data = assessment(first_split))
+# or: assessment(first_split) %>% add_predictions(first_split_fitted_model)
+first_split_metrics <- first_split_predictions %>% metrics(truth = Sale_Price, estimate = .pred)
+first_split_metrics
+```
+```{r}
+model1_cv_results <- model1_workflow %>%
+  fit_resamples(resamples = ames_resamples, metrics = metrics)
+model1_cv_results
+```
+
+```{r}
+model1_cv_results %>% 
+  collect_metrics(summarize = FALSE)
+```
+```{r}
+model1_cv_results %>% 
+  collect_metrics(summarize = TRUE)
+```
+## Evaluate other models
+
+```{r}
+model2_workflow <- workflow() %>% 
+  add_model(decision_tree(mode = "regression", tree_depth = 30)) %>% 
+  add_formula(Sale_Price ~ Latitude + Longitude)
+
+linear_workflow <- workflow() %>% 
+  add_model(linear_reg()) %>% 
+  add_formula(Sale_Price ~ Latitude + Longitude)
+
+poly_workflow <- workflow() %>% 
+  add_model(linear_reg()) %>% 
+  add_recipe(
+    recipe(Sale_Price ~ Latitude + Longitude, data = ames_train) %>% 
+      step_interact(~ Latitude:Longitude) %>% 
+      step_poly(Latitude, Longitude, degree = 4))
+```
+
+```{r}
+poly_model <- poly_workflow %>% fit(ames_train)
+show_latlong_model(ames_train, poly_model)
+```
+
