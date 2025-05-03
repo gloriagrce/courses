@@ -1,0 +1,249 @@
+---
+title: "Stat 341 -- Homework 2"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r, setup, include = FALSE, message=FALSE}
+# load packages that are going to be used
+library(mosaic)      # this loads ggformula (for plotting), etc. too
+library(fastR2)      # some data sets
+library(pander)      # nicely formatted tables with pander()
+library(knitr)       # so you can use kable() for tables
+library(patchwork)   # for combining plots
+
+# data wrangling
+library(tidyverse)
+
+# several packages for bayesian stuff -- more may come later
+library(rethinking)  # related to text
+library(tidybayes)    
+library(bayesplot)
+library(CalvinBayes)
+
+
+# Some customization. You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw())     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  fig.width = 4,    # adjust this to make figures wider or narrower
+  fig.height = 2.5, # adjust this to make figures taller or shorrter
+  size = "small")   # slightly smaller font for code
+```
+
+
+<!-- A few math abbreviations -->
+
+\newcommand{\Prob}{\operatorname{Pr}}
+\newcommand{\Binom}{\operatorname{Binom}}
+\newcommand{\Unif}{\operatorname{Unif}}
+\newcommand{\Triangle}{\operatorname{Triangle}}
+\newcommand{\Norm}{\operatorname{Norm}}
+\newcommand{\Beta}{\operatorname{Beta}}
+\newcommand{\E}{\operatorname{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\SD}{\operatorname{SD}}
+
+<!-- Put your work below here.  Put text in text chunks, code in R chunks. -->
+
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- rep( 1 , 1000 )
+likelihood <- dbinom( 6 , size=9 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+set.seed(100)
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+```
+
+## SR 3E1
+
+```{r}
+mean(samples < 0.2)
+```
+
+## SR 3E2
+
+```{r}
+mean(samples > 0.8)
+```
+
+## SR 3E3
+
+```{r}
+mean(between(samples, 0.2, 0.8))
+```
+
+## SR 3E4
+
+```{r}
+quantile(samples, probs = 0.2)
+```
+
+## SR 3E5
+
+```{r}
+quantile(samples, probs = 0.8)
+```
+
+## SR 3E6
+
+```{r}
+HPDI( samples , prob=0.66)
+```
+
+## SR 3E7
+
+```{r}
+PI( samples , prob=0.66)
+```
+
+## SR 3M1
+
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 ) 
+prior <- rep( 1 , 1000 )
+likelihood <- dbinom( 8 , size=15 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+```
+
+```{r}
+tibble(p = p_grid, posterior = posterior) %>%
+  ggplot(aes(x = p, y = posterior)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Proportion of Water", y = "Posterior Density")
+```
+
+## SR 3M2
+
+```{r}
+set.seed(101)
+samples <- sample(p_grid, prob = posterior, size = 1e4, replace = TRUE)
+HPDI(samples, prob = 0.9)
+```
+
+## N1
+
+```{r read data}
+movielens <- read_csv('https://sldr.netlify.app/data/movielens.csv')
+```
+
+## Part A
+
+The quantity that I am working on to estimate is the proportion of the movie that is comedy. 
+
+
+```{r}
+table(movielens$comedy)
+```
+
+```{r}
+total_comedy <- 773
+total_Ncomedy <- 1172
+```
+
+
+## Part B 
+Choose a prior that adequately expresses your prior knowledge about the situation, before peeking at the data. Explain your choice. Make a sketch (by hand) or a graph (in R) of the prior, with appropriate axis titles (y axis need not be perfectly to scale)
+
+I don't fully understand what I should input as my shape 1 and 2 for my beta distribution. 
+
+```{r}
+my_beta_prior <- tibble(p_grid = seq(from = 0, to = 1, length.out = 1000),
+                        prior_density = dbeta(p_grid, shape1 = 10, shape2 = 4))
+gf_line(prior_density ~ p_grid, data = my_beta_prior)
+```
+
+
+## Part C 
+
+fixed:
+```{r}
+grid_movie2 <-
+  tibble(p_grid = seq(from = 0, to = 1, length.out = 100000),      # define grid
+         dbeta(p_grid, shape1 = 10, shape2 = 4)) |>                                       # define prior
+  mutate(likelihood = dbinom(total_comedy, 
+                             size = total_comedy  + total_Ncomedy, 
+                             prob = p_grid)) |>  # compute likelihood at each value in grid
+  mutate(unstd_posterior = likelihood * prior) |>             # compute product of likelihood and prior
+  mutate(posterior = unstd_posterior / sum(unstd_posterior))   # standardize the posterior, so it sums to 1
+
+
+# to peek at the results table
+glimpse(grid_movie2)
+```
+
+
+```{r}
+grid_movie <-
+  tibble(p_grid = seq(from = 0, to = 1, length.out = 100000),      # define grid
+         prior  = 1) |>                                       # define prior
+  mutate(likelihood = dbinom(total_comedy, 
+                             size = total_comedy  + total_Ncomedy, 
+                             prob = p_grid)) |>  # compute likelihood at each value in grid
+  mutate(unstd_posterior = likelihood * prior) |>             # compute product of likelihood and prior
+  mutate(posterior = unstd_posterior / sum(unstd_posterior))   # standardize the posterior, so it sums to 1
+
+
+# to peek at the results table
+glimpse(grid_movie)
+```
+
+
+## Part D 
+Interpret and present your posterior in at least 2 ways. One of them should be a graph (not a number or interval). At least one of them should require sampling from the posterior as a preparatory step. Include a paragraph explaining your choice (why did you choose these 2 particular ways to show/present the posterior)?
+
+```{r}
+grid_plot <- gf_point(posterior ~ p_grid, 
+                           data = grid_movie) |>
+  # this is optional -- adds a line in addition to  the dots
+  gf_line(color = 'grey44', alpha = 0.5) |>
+  gf_labs(x = 'Possible values of Comedy',
+          y = 'Posterior Probability')
+
+grid_plot
+```
+
+```{r}
+grid_plot |> 
+  gf_lims(x = c(0.35, 0.45))
+```
+
+Fixed:
+
+```{r}
+grid_plot2 <- gf_point(posterior ~ p_grid, 
+                           data = grid_movie2) |>
+  # this is optional -- adds a line in addition to  the dots
+  gf_line(color = 'grey44', alpha = 0.5) |>
+  gf_labs(x = 'Possible values of Comedy',
+          y = 'Posterior Probability')
+
+grid_plot2
+```
+
+```{r}
+grid_plot2 |> 
+  gf_lims(x = c(0.35, 0.45))
+```
+## Part E 
+
+Based on my work, I learned that the probability of the movies given that it is a comedy genre is 3e-04 where the possible value of comedy is below 0.4.
+
+I am still confused about what does it mean, since it is binary, I understand there is probability of comedy and not comedy but why is the probability 3e-04? what does the possible values of comedy represent or what is P grid? I think I know what prior and posterior based on what I learn in class but I feel like classes exercise where we have to do our own does not help my understanding that much since a lot of people ask question to. 
+
+## Part F 
+
+I do wonder how the data is obtained, out of all the movies that were picked, how were they pick. I do think that the data or the question that I answer would appear differently if the data were obtained differently too. 
+
+
+
+
