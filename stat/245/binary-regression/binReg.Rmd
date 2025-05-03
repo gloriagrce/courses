@@ -1,0 +1,145 @@
+---
+title: "Binary Regression Practice"
+author: "Team"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: pdf_document
+classoption: landscape
+header-includes:
+- \usepackage[fontsize=20pt]{scrextend}
+---
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(mosaic)
+require(ggformula)
+library(glmmTMB)
+library(s245)
+library(tidyr)
+knitr::opts_chunk$set(echo = TRUE,
+                      error = TRUE,
+                      fig.width = 7, 
+                      fig.height = 4)
+
+theme_set(theme_minimal(base_size = 16))
+```
+
+
+## First Section
+
+## Home Loans
+
+```{r read-prep}
+credit <-
+  read_csv(
+    'https://raw.githubusercontent.com/anup-jana/R-Machine-Learning/master/R%20Scripts/Datasets/Credit_Risk_Train_data.csv',
+    # treat cells that are empty or have just a space as content as missing values
+    na = c('', ' ')
+  ) |>
+  # version of the loan status variable that is coded as 0 and 1s
+  mutate(binary_loan_status = case_when(Loan_Status == "Y" ~ 1,
+                                        Loan_Status == "N" ~ 0))
+
+glimpse(credit)
+```
+
+
+# Tasks
+
+## Model Planning 
+### applicant income, Credit_History, LoanAmount
+
+
+PREDS: income, Credit_History
+
+based on slides: https://stacyderuiter.github.io/stat245-2022/binary-regression-1.html#18 
+
+
+## Data Exploration
+
+## Model Fitting, Choose Link Function
+
+```{r model-fitting}
+credit <- credit %>% 
+  select(Loan_Status, ApplicantIncome, Credit_History, LoanAmount)
+
+creditFit <-glm(factor(Loan_Status) ~ ApplicantIncome + Credit_History + LoanAmount, data=credit, family=binomial(link='logit'))
+
+summary(creditFit)
+```
+
+
+## Model Assessment
+
+### Indepencence
+
+```{r}
+s245::gf_acf(~creditFit)
+```
+//from slides here: https://stacyderuiter.github.io/stat245-2022/binary-regression-more.html#6
+
+
+### Linearity
+
+```{r}
+credit <- credit %>% 
+  select(Loan_Status, ApplicantIncome, LoanAmount, Credit_History) %>% 
+  na.omit()
+```
+
+```{r}
+lin_check <- credit %>% 
+  mutate(binned_dist = cut(LoanAmount, 
+                           breaks = quantile(LoanAmount,
+                                             c(0, 0.25, 0.5, 0.75, 1))),
+          Loan_amt = median(~LoanAmount, na.rm = TRUE))%>% 
+  group_by(Loan_amt, binned_dist) %>% 
+  summarize(prop_ab = prop(~Loan_Status == 'Y')) %>% 
+  mutate(logit_p = logit(prop_ab))
+
+glimpse(lin_check)
+```
+
+```{r}
+gf_point(logit_p ~ Loan_amt, 
+         data = lin_check)
+```
+
+
+```{r}
+require(DHARMa)
+credit_sim <- simulateResiduals(creditFit)
+```
+
+```{r}
+gf_point(credit_sim$scaledResiduals ~ rank(predict(creditFit)),
+         alpha = 0.2) %>% 
+  gf_labs(x = 'Fitted Values',
+          y = 'Scaled Residuals')
+```
+
+## Model Selection
+
+```{r}
+car::Anova(creditFit)
+```
+
+
+## Interpretation/ Prediction Plots
+
+```{r}
+mosaic::tally(~LoanAmount, format = 'perc', data = credit)
+```
+```{r}
+require(ggeffects)
+pred_plot_data <- ggpredict(creditFit, terms = 'LoanAmount')
+
+plot(pred_plot_data)
+```
+
+```{r}
+require(ggeffects)
+pred_plot_data <- ggpredict(creditFit, terms = 'Credit_History')
+
+plot(pred_plot_data)
+```
+
