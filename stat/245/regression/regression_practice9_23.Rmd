@@ -1,0 +1,167 @@
+---
+title: "Stat 245 -- HW ??"
+author: "A. Student"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    fig_height: 2.2
+    fig_width: 4
+  pdf_document:
+    fig_height: 2.2
+    fig_width: 4
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+library(MuMIn)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+
+## Data
+
+```{r}
+age_guess <- read_csv("https://sldr.netlify.app/data/age-guess.csv")
+head(age_guess)
+```
+
+## Plan a Regression Model
+
+The response variable will be age_guess_error, and the predictors will be actual_age, ethnicity, and gender. 
+
+## Graphics
+
+```{r}
+gf_point(age_guess_error ~ actual_age, data = age_guess, alpha = .5)
+```
+
+
+## Fit Model
+
+```{r}
+lm_age_guess <- lm(age_guess_error ~ actual_age + ethnicity + gender,data=age_guess)
+summary(lm_age_guess)
+```
+
+
+## Model Assessment
+
+```{r}
+age_guess <- age_guess |>
+  mutate(preds = predict(lm_age_guess),
+         resids = resid(lm_age_guess))
+```
+
+### Normality of Residuals
+
+```{r}
+gf_histogram(~ resids, data = age_guess, bins = 10)
+```
+
+The residuals appear to be normally distributed. Our linear model passes this condition.
+
+### Lack of Non-linearity
+
+```{r}
+gf_point(resids ~ preds, data = age_guess, alpha = .5)
+```
+
+There are no observable trends, so our linear model passes this condition.
+
+### Constant Residual Variance
+
+```{r}
+gf_point(resids ~ preds, data = age_guess, alpha = 0.5)
+```
+The points appear evenly spread around y = 0, so the constant residual variance is good. 
+
+
+### Independence of Residuals
+
+```{r}
+s245::gf_acf(~lm_age_guess) |>
+  gf_lims(y = c(-0.5, 0.5))
+```
+None of the spikes go out of the boundaries.
+
+## Model Selection
+
+```{r}
+lm_age_guess <- lm_age_guess |>
+  update(na.action = 'na.fail')
+age_guess_dredge <- dredge(lm_age_guess, rank = 'BIC')
+age_guess_dredge
+```
+
+## Prediction Plot
+
+### Hypothetical Dataset
+```{r}
+age_guess_pred_data <- expand.grid(
+              actual_age = seq(from = 5, by = 1, to = 80),
+                             ethnicity = 'Caucasian/White',
+                             gender = 'Female')
+```
+
+### Make predictions from fitted model
+```{r}
+age_guess_preds <- predict(lm_age_guess, newdata = age_guess_pred_data, se.fit = TRUE)
+```
+
+### Make predictions
+```{r}
+
+age_preds <- predict(lm_age_guess,
+newdata = age_guess_pred_data, 
+se.fit = TRUE)
+```
+
+
+```{r}
+age_guess_pred_data <- age_guess_pred_data %>% 
+  mutate(pred = age_preds$fit, pred.se = age_preds$se.fit)
+```
+
+```{r}
+age_guess_pred_data <- age_guess_pred_data %>% mutate(CI_lower = pred - 1.96*pred.se, CI_upper = pred + 1.96*pred.se)
+```
+
+
+```{r}
+gf_line(pred ~ actual_age, data=age_guess_pred_data) %>% 
+    gf_ribbon(CI_lower + CI_upper ~ actual_age)
+```
+
+
+
+Our best model is the one with actual age and gender. It passed all of the model assessment conditions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
