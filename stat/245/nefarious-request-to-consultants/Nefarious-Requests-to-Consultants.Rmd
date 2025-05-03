@@ -1,0 +1,74 @@
+---
+title: "Nefarious Requests to Consultants"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: pdf_document
+classoption: landscape
+header-includes:
+- \usepackage[fontsize=20pt]{scrextend}
+---
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(mosaic)
+require(ggformula)
+knitr::opts_chunk$set(echo = TRUE,
+                      error = TRUE,
+                      fig.width = 7, 
+                      fig.height = 4)
+
+theme_set(theme_minimal(base_size = 16))
+```
+
+
+## Read in Data
+
+```{r}
+nefarious <- read_csv('https://sldr.netlify.app/data/nefarious.csv')
+```
+
+## Graph A: Requests by Race and Age Group
+
+```{r}
+gf_density(~total_nefarious | race, color = ~age_group,
+           alpha=0.05,
+           data = nefarious) |>
+gf_labs(title = 'Total Request Received Based on Race and Age Group',
+        color = 'Age Group', 
+        x = 'Total Nefarious')
+```
+
+
+## Graph B: Race and Age Group
+
+```{r}
+nefarious <- nefarious %>% 
+  mutate(race_white = fct_other(race,
+                                keep = 'white'))
+  
+gf_bar(~age_group, 
+       data = nefarious,
+       position = 'dodge',
+      group = ~race, 
+      fill = ~race_white) |>
+  gf_facet_grid(~race) %>% 
+  gf_refine(coord_flip()) %>% 
+  gf_labs(title = 'Amount of Consultants Based on Age and Race', 
+        x = 'Age Group') %>%
+  gf_theme(scale_fill_manual(values = c('hotpink', 'grey')))
+```
+
+## Graph C: Requests by sex and age group
+
+
+```{r}
+gf_boxplot(sex ~ total_nefarious | age_group, 
+       position = 'dodge',
+       data = nefarious) %>% 
+  gf_labs(title = 'Total Nefarious Comparison Between Sex by Age',
+          x = 'Total Nefarious', 
+          y = 'Sex')
+```
+
+
+  
