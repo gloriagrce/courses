@@ -1,0 +1,231 @@
+---
+title: "Stat 341 -- Homework 9"
+author: "Gloria Grace"
+date: "2023-04-13"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_download: yes
+---
+
+```{r, setup, include = FALSE, message=FALSE}
+library(tidyverse)
+library(ggformula)
+library(rethinking)
+library(rstan)
+library(CalvinBayes)
+library(tidybayes)
+library(bayesplot)
+knitr::opts_chunk$set(echo = TRUE,
+                      error = TRUE,
+                      fig.width = 7, 
+                      fig.height = 4)
+
+theme_set(theme_minimal(base_size = 16))
+```
+
+## Data
+
+```{r}
+set.seed(12)
+HAI <- read_csv('https://sldr.netlify.app/data/HAI-hospital-performance.csv',
+                 show_col_types = FALSE,
+                na = c('', ' ', 'NA', "NaN", "Not Available")) |>
+  mutate(Recommend = as.numeric(scale(H_RECMND_LINEAR_SCORE)), # (1)
+         Clean_Star_Rating = as.numeric(scale(H_CLEAN_STAR_RATING)), # (2)
+         MRSA_SIR = HAI_5_SIR, # just renaming to an easier to remember value
+         MRSA_SIR = ifelse(MRSA_SIR == 0, 0.001, MRSA_SIR), # EC3
+         State_Num = as.numeric(factor(State)), # (3)
+         County_Num = as.numeric(factor(paste0(State,County)))
+         ) |>
+  select(Facility, State, State_Num, County, County_Num, MRSA_SIR, Recommend, Clean_Star_Rating)
+```
+
+```{r}
+HAI_1 <- HAI |>
+  select(MRSA_SIR, Recommend, Clean_Star_Rating, State, State_Num) |>
+  drop_na() # (4)
+
+HAI_1c <- compose_data(HAI_1)
+```
+
+```{r}
+HAI_2 <- HAI |> 
+  select(MRSA_SIR, Recommend, Clean_Star_Rating, State, State_Num) |>
+  drop_na(MRSA_SIR, State, State_Num) 
+
+Clean_Star_missidx <- HAI_2 |>
+  mutate(rownum = row_number()) |>
+  filter(is.na(Clean_Star_Rating)) |>
+  pull(rownum)
+  
+Recommend_missidx <- HAI_2 |>
+  mutate(rownum = row_number()) |>
+  filter(is.na(Recommend)) |>
+  pull(rownum)
+
+HAI_2 <- HAI_2 |>
+  mutate(Clean_Star_Rating = replace_na(Clean_Star_Rating, Inf),
+         Recommend = replace_na(Recommend, Inf))
+
+HAI_2c <- compose_data(Clean_Star_missidx = Clean_Star_missidx, 
+                       Recommend_missidx = Recommend_missidx,
+                       HAI_2)
+```
+
+```{r}
+HAI_3 <- HAI |>
+  select(MRSA_SIR, Recommend, Clean_Star_Rating, State, State_Num, County, County_Num) |>
+  drop_na() |>
+  mutate(County_Num = as.numeric(factor(County_Num)))
+
+County_Data <- HAI_3 |> # (5) This whole small block creating County_Data
+  group_by(County_Num) |>
+  summarise(County_Num = first(County_Num)) |>
+  ungroup()
+
+HAI_3c <- compose_data(County_Data = County_Data, HAI_3) # EC2
+```
+
+```{r}
+HAI_4 <- HAI_1
+
+HAI_4c <- HAI_1c
+```
+
+
+## Stan model and Model Fitting
+
+```{r}
+fitted_model_1 <- stan(file = 'hw9_model1.stan',
+                       data = HAI_1c,
+                       chains = 4,
+                       iter = 2000,
+                       refresh = 0)
+```
+```{r}
+fitted_model_2 <- stan(file = 'hw9_model2.stan',
+                       data = HAI_2c,
+                       chains = 4,
+                       iter = 2000,
+                       refresh = 0)
+```
+```{r}
+fitted_model_3 <- stan(file = 'hw9_model1.stan',
+                       data = HAI_3c,
+                       chains = 4,
+                       iter = 2000,
+                       refresh = 0)
+```
+```{r}
+fitted_model_4 <- stan(file = 'hw9_model1.stan',
+                       data = HAI_4c,
+                       chains = 4,
+                       iter = 2000,
+                       refresh = 0)
+```
+
+## Code Comments
+
+### (1)
+
+The code is converting the scaled values of of the column "H_RECMND_LINEAR_SCORE" to have a mean of 0 and a standard deviation of 1, to a a numeric data type and adding it to a column name "Recommend".
+
+### (2)
+
+This code is adding a Clean_Star_Rating column with the data of conversion of scales the values of the column "H_CLEAN_STAR_RATING" to have a mean of 0 and a standard deviation of 1, to a numeric data type.
+
+### (3)
+
+The code creates a new column name State_Num in a data frame by converting the existing column "State" into a numeric factor.
+
+### (4)
+
+drop_na() is used to remove rows that contain missing (NA) values from a data frame.
+
+### (5)
+
+The small chunk of code creates a new data frame called "County_Data".
+The resulting data frame includes only one column, also called "County_Num" that contains the first value of "County_Num" for each group of rows with the same value of "County_Num". 
+Then the grouping was removed.
+
+## Matching
+
+### Stan Program 1
+
+The first stan program is a Gamma Regression Model. 
+
+One of the code that gave me a clue is 
+
+MRSA_SIR ~ gamma(alpha, lambda);
+
+it specifies a likelihood function, which is the distribution of the observed variable MRSA_SIR. 
+
+The gamma distribution is used here, which indicates that the response variable is positive and skewed to the right. 
+
+### Stan Program 2
+
+The second stan program is a hierarchical regression model with imputation of missing values. 
+
+The likelihood function is specified as a gamma distribution with mean mu and precision lambda, given the data MRSA_SIR, which is indicative of a hierarchical model.
+
+Another clue is:
+
+  vector[115] Clean_Star_impute;
+  vector[115] Recommend_impute;
+}
+The model section includes parameters mu_Clean_Star and mu_Recommend, and their respective standard deviations sigma_Clean_Star and sigma_Recommend, which are used to impute missing data.
+
+### Stan Program 3
+
+The third stan program is a hierarchical Gamma regression model.
+
+From this code: 
+
+mu[i] = exp(b0 + mu_County + z0[County_Num[i]] * sigma_County + b1 * Recommend[i] + b2 * Clean_Star_Rating[i] + b3[State_Num[i]]);
+
+it shows the hierarchical structure with the mu_County term and the county-specific random effects z0[County_Num[i]] * sigma_County. Additionally, the response variable MRSA_SIR follows a Gamma distribution, which indicates that it is a Gamma regression model.
+
+
+### Stan Program 4
+
+The fourth stan program is a Normal regression model.
+
+I was able to comclude this matching because of this code:
+
+MRSA_SIR ~ normal(mu, sigma);
+
+which specifies that the response variable MRSA_SIR is normally distributed with mean mu and standard deviation sigma.
+
+## Model Comparison
+
+For these models, it would not be appropriate to use model comparison because the two models have different response variables and cannot be compared using standard criteria such as AIC or BIC. In addition, these models are not nested, meaning that one model is not a special case of the other, which makes it difficult to directly compare them.
+
+## A prior 
+
+Out of the four models, the one that I choose is the second stan program. From it, the priors seems reasonable, as these represent the underlying mean levels of cleanliness and recommendation likelihood. 
+
+
+## Interpretation
+
+Comparing between all models, there seems to have a slighty difference in posteriors. The reason for this I think could be because it is all different regression model. 
+
+
+## EC1 
+
+This assignment took me around 2 and a half hours to finish. 
+
+The part that was the least fun was waiting for each of the stan model to run because it took quite a while. 
+
+The easiest part of this assignment was explaining the code comments. 
+
+## EC2
+
+The reason why the County data comes first in the compose_data() function call is because the compose_data() function expects the first argument to be the summary data frame which is  "County_Data" and the second argument to be the original dataset. 
+
+## EC3
+
+This line of code is used to replace any 0 values that is present in the "MRSA_SIR" column with a small positive value (0.001). It is needed to modify the "MRSA_SIR" column by replacing any 0 values with a small positive value, which can help avoid errors or biases in subsequent analyses that involve this column.
