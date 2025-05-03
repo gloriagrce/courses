@@ -1,0 +1,109 @@
+---
+title: "Search Count Model 2.0"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: pdf_document
+classoption: landscape
+header-includes:
+- \usepackage[fontsize=20pt]{scrextend}
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+library(glmmTMB)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+
+## Data
+
+```{r}
+search <- read_csv('https://sldr.netlify.app/data/election_searches.csv')
+```
+
+
+## Fit
+
+```{r}
+search_nb1 <- glmmTMB(Searches ~ Age + Education + Sex, data = search,
+                      family = nbinom1(link = 'log'))
+```
+
+```{r}
+summary(search_nb1)
+```
+
+## Prediction Plot
+
+### Hypothetical data
+
+```{r}
+hyp_search <- expand.grid(Age = 26,
+                        Education = c('Bachelors'),
+                        Sex = c('Male', 'Female'))
+
+```
+
+### Make predictions on link scale
+
+```{r}
+search_preds <- predict(search_nb1,
+                        newdata = hyp_search,
+                        type = 'link',
+                        se.fit = TRUE)
+```
+
+### Compute on link scale 
+```{r}
+hyp_search <- hyp_search |>
+  mutate(pred = exp(search_preds$fit),
+         ci_lower = exp(search_preds$fit - 1.96*search_preds$se.fit),
+         ci_upper = exp(search_preds$fit + 1.96*search_preds$se.fit))
+```
+
+### Draw the plot 
+
+```{r}
+gf_point(pred ~ Sex,
+         data = hyp_search) |>
+  gf_errorbar(ci_lower + ci_upper ~ Sex) |>
+  gf_labs(y = 'No. of Predicted Searches')
+
+```
+
+
+
+## Model Selection
+
+
+```{r}
+search_nb2 <- glmmTMB(Searches ~ Age + Party + Sex, data = search,
+                      family = nbinom1(link = 'log'))
+```
+
+```{r}
+search_nb3 <- glmmTMB(Searches ~ Age + Vote_Sway + Sex, data = search,
+                      family = nbinom1(link = 'log'))
+```
+
+
+Check which is better: 
+```{r}
+AIC(search_nb1, search_nb2, search_nb3)
+```
+Based on the AIC test above on three different model which differs on one particular predictor, the model of negative binomial one with the Sex, Age, and Education predictor was the best fit. 
+
+
+  

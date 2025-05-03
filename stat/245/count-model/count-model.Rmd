@@ -1,0 +1,83 @@
+---
+title: "Stat 245 -- Search Count Model"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: pdf_document
+classoption: landscape
+header-includes:
+- \usepackage[fontsize=20pt]{scrextend}
+---
+
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+library(glmmTMB)
+library(DHARMa)
+
+knitr::opts_chunk$set(echo = TRUE,
+                      error = TRUE,
+                      fig.width = 7, 
+                      fig.height = 4)
+
+theme_set(theme_minimal(base_size = 16))
+```
+
+
+## Data 
+
+```{r}
+search <- read_csv('https://sldr.netlify.app/data/election_searches.csv')
+```
+
+## Plan
+
+For this model, the predictors that I want to include which I think is relevant to the number of internet searches someone does per week (searches) are Age, Education, and Sex. One of the reasons I included both age and education is because I expect that the higher education, the higher the number of searches it will be. For Age, I expect people in the 30s below might have higher search count compares to people in their 60s and above. 
+
+## Fit
+
+```{r}
+search_nb1 <- glmmTMB(Searches ~ Age + Education + Sex, data = search,
+                      family = nbinom1(link = 'log'))
+```
+
+```{r}
+search_nb2 <- glmmTMB(Searches ~ Age + Education + Sex, data = search,
+                      family = nbinom2(link = 'log'))
+```
+
+Check which is better: 
+```{r}
+AIC(search_nb1, search_nb2)
+```
+
+
+## Model Assessment
+
+Scaled Residuals
+
+```{r}
+nb2_sim <- simulateResiduals(search_nb2)
+plotResiduals(nb2_sim,
+              quantreg = FALSE)
+```
+
+```{r}
+search <- search |>
+  mutate(nb2_pred = rank(predict(search_nb2,
+                                 type = 'response')),
+         nb2_scaled_resid = nb2_sim$scaledResiduals)
+```
+
+```{r}
+gf_point(nb2_scaled_resid ~ nb2_pred,
+         data = search) |>
+  gf_labs(y = 'Scaled Resid.', x = 'Predicted Search')
+```
+
+
+
+
+  
