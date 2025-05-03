@@ -106,32 +106,3 @@ B_ppd <- rbinom(n = 10000,
 
 glimpse(B_ppd)
 ```
-
-
-#### Question: What is the difference between a *sample from the posterior* and a *posterior predictive distribution*? It might help to clearly state what units each one is measured in: probability, counts, etc.? Try including the words "data" and "parameter" and "model" in your answer.
-
-Sample from the posterior 
-
-#### Question: How does `W_ppd` (the posterior predictive distribution) differ from the `W` you generated earlier using `rbinom()`?  You can just explain based on your understanding so far, or if you are not sure, try making graphs of `W` and `W_ppd` to help you figure it out.
-
-## Why, why, why?
-
-Why would we want a posterior predictive distribution, anyway? There are a bunch of reasons, such as...
-
-1. **Model design** We could simulate data like we did above, but using a sample *from the prior* instead of a sample from the posterior! This is called **prior predictive checking** and is a good way to see whether your choice of prior is realistic and mistake-free. If you think the data simulated from the prior is impossible or ridiculous, then *you* must know something that's not encoded in the prior (yet)!
-2. **Model Checking** Does the posterior predictive distribution look more-or-less like real data? If not, you probably made a mistake in coding/fitting your model, choosing the prior, or conceptualizing the model!
-3. **Software Validation** Beyond just checking if the posterior predictive distribution "looks okay," to further verify whether your model-fitting is working well, you can *generate* simulated data via the PPD and then *fit* the model to it. You should "recover" the parameter values used as input to the simulation, if everything is working right.
-4. **Research Design** You can use simulated data to help plan future research and data collection. You can answer all kinds of practical questions such as, "Given how this system works and how we're modeling it, how big of a sample size would be needed to reliably estimate the difference between ... and ... or the effect of ... on ...?"
-5. **Forecasting**: You can "simulate new predictions, for new cases and future observations. These forcasts can be useful as ... prediction, but also [to drive] model criticism and revision."
-
-#### Question: Which of these items do you think we will do the most? If you had to list the five in order of importance, which ones would be at the top?
-
-*The item names on this list, and the quote in #5, were taken from SR Chapter 3, page 61.*
-
-## Going Further (if extra time)
-
-- Try to generate a **prior predictive distribution** for the model you have been working with. 
-- How does it compare with the posterior predictive distribution? 
-- Based on it, do you think the prior you used was a good choice?
-- Try repeating this part (getting the prior predictive distribution) for almost-the-same model, but with a *different* prior.  Options: try using a *better* prior, or try using a *terrible* one. By "terrible" I mean untrue and inconsistent with what you know about the situation; not one so invalid that it will just cause the model fitting machinery to throw an error!
-
