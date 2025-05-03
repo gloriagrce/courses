@@ -1,0 +1,91 @@
+---
+title: "Diversity & Innovation in Academia"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: pdf_document
+classoption: landscape
+header-includes:
+- \usepackage[fontsize=20pt]{scrextend}
+---
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(mosaic)
+require(ggformula)
+knitr::opts_chunk$set(echo = TRUE,
+                      error = TRUE,
+                      fig.width = 7, 
+                      fig.height = 4)
+
+theme_set(theme_minimal(base_size = 16))
+```
+
+## Data
+
+```{r}
+pi <- read_csv('https://sldr.netlify.app/data/phd_innovation.csv')
+```
+
+## Fit Linear Regression
+
+```{r}
+mlr <- lm(uptake ~ prop_same_sex + sex, data = pi )
+```
+
+## Model Summary
+
+```{r}
+summary(mlr)
+```
+Equation: 
+
+uptake = 0.81 + 0.95 prop_same_sex + 0.04 Imale + $\epsilon$,
+
+$\epsilon$ $\sim$ N(0, 0.64), Imale is 1 if pi is male, 0 otherwise. 
+
+
+## Making a Prediction Plot
+
+### new prediction data
+
+```{r}
+fake_data <- expand.grid(prop_same_sex = seq(from = 0.2, 
+                                             to = 0.9,
+                                             by = 0.01),
+                         sex = c("Male"))
+```
+
+### SE Predictions
+
+```{r}
+preds <- predict(mlr, 
+                 newdata = fake_data, 
+                 se.fit = TRUE)
+```
+
+```{r}
+fake_data <- fake_data %>% 
+  mutate(pred = preds$fit, 
+         pred.se = preds$se.fit)
+```
+### Convert from SE to CI
+
+```{r}
+fake_data <- fake_data %>% 
+  mutate(CI_lower = pred - 1.96*pred.se, 
+         CI_upper = pred + 1.96*pred.se)
+```
+
+## Prediction Plot 
+
+```{r}
+gf_line(pred ~ prop_same_sex, 
+         data = fake_data) %>% 
+  gf_labs(y = 'Predicted\n uptake') %>% 
+  gf_ribbon(CI_lower + CI_upper ~ prop_same_sex)
+```
+
+For my fitted model, I chose uptake as my response because I want to investigate other factors with it and both sex and prop_same_sex as my predictors. I chose my model by looking at the data set and understanding what each variable represents. 
+
+From the prediction plot, I can take a conclusion that through this prediction, a measure of how enthusiastically innovative ideas are taken up or uptake are taken higher as proportion of peers who are the same sex also goes higher. 
+  
