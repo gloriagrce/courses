@@ -1,0 +1,85 @@
+---
+title: "Stat 245 -- Practice 9/9"
+author: "Table Group 3"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    fig_height: 2.2
+    fig_width: 4
+  pdf_document:
+    fig_height: 2.2
+    fig_width: 4
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+```{r}
+library(fivethirtyeight)
+?bechdel
+
+bechdel_13 <- bechdel |>
+  filter(year >= 1990 & year <= 2013) 
+
+bechdel_13 <- bechdel_13 |>
+    mutate(roi = intgross_2013 / budget_2013,
+         profit = intgross_2013 - budget_2013)
+
+bechdel_13 <- bechdel_13 |>
+  mutate(clean_test = factor(as.character(clean_test)),
+         clean_test = forcats::fct_relevel(clean_test,
+                                           'ok',
+                                           'dubious',
+                                           'men',
+                                           'notalk',
+                                           'nowomen'))
+
+head(bechdel_13)
+```
+
+## Plan
+
+We are considering using profit as well as binary test results for a predictor 
+
+
+```{r}
+gf_bar(~binary, data=bechdel_13)
+
+gf_boxplot(profit ~ binary, data=bechdel_13) |>
+  gf_lims(y=c(0, 1000000000))
+```
+
+
+```{r}
+lm(profit ~ binary,data=bechdel_13)
+gf_point(profit ~ budget, data=bechdel_13, alpha=.25) |>
+  gf_facet_wrap(~binary)
+```
+
+```{r}
+lm_bechdel <- lm(profit ~ binary,data=bechdel_13)
+summary(lm_bechdel)
+```
+
+## Answer
+
+Based of our model, it seems as though we are confused.
+
+  
