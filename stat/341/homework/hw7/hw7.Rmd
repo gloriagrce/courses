@@ -1,0 +1,140 @@
+---
+title: "Stat 341 -- Homework 7"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  pdf_document: default
+  html_document:
+    toc: true
+    toc_float: true
+    code_download: true
+---
+
+```{r setup, include=FALSE, message=FALSE}
+library(faraway)
+library(rethinking)
+library(tidyverse)
+library(ggformula)
+library(CalvinBayes)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 8E1
+
+(1) Bread dough rises because of yeast.
+For this one, the temperature can can lead to an interaction effect between the dough rises and yeast. 
+
+(2) Education leads to higher income.
+A third variable of this can be someone's IQ, when someone has low iq or hard to adapt and absorb education, it might affect their knowledge which could also affect their income.
+
+(3) Gasoline makes a car go.
+For this one, a third variable can be wheels because technically, a car without wheels cannot go anywhere. 
+
+## 8E2
+
+Out of all the options, the first explanation, is the only one that invokes an interaction because in order to get caramelization, it needed low heat to make sure it doesn't dried out. 
+
+Whereas in the second statement, it is stating that either cylinders or a better fuel injector will result in faster speed. 
+
+Same with number three, which is presented with an "or." People acquire beliefs from their parents or their friends. Which deliver the message that both don't have interaction with each other (parents or friends).
+
+For the last one, it included the word or again which means that there is no indication that the influence of one factor impacts the influence of the other.
+
+## N1
+
+### data
+```{r}
+library(rethinking)
+data("Wines2012")
+Wines2012 <- Wines2012 |>
+  # make a standardized version of the score variable
+  mutate(score.std = as.numeric(scale(score)),
+         # categorical versions of some variables originally coded 0/1
+         wine.origin = ifelse(wine.amer == 1, 'USA', 'Other'),
+         judge.nationality = ifelse(judge.amer == 1, 'USA', 'France'),
+         # numeric index versions of the same categorical variables
+         origin.ix = as.numeric(factor(wine.origin)),
+         judge.ix = as.numeric(factor(judge.nationality))
+         )
+
+```
+
+```{r}
+Wines2012 <- Wines2012 |>
+  mutate(Origin_Judge = interaction(wine.origin, judge.nationality),
+         Origin_Judge_ix = as.numeric(Origin_Judge)) |>
+  drop_na(Origin_Judge, score.std)
+glimpse(Wines2012)
+```
+
+
+### Description
+
+$$\text{score.std}_i \sim \text{Normal}(\mu, \sigma)$$
+
+For some reason this won't work (rmd won't knit)even though I put dollar signs on them.
+## mu_i = beta_1 text{[Origin_Judge_ix]}
+
+$$\mu_i = \beta_1$$
+$$\beta_1 \sim \text{Normal}(0.1, 0.25)$$
+$$\sigma \sim \text{Normal}(\text{mean}_2 = 0, \text{sd}_2 = 1)$$
+
+### Defining the interaction
+
+The interactions of the variable `wine.origin` and `judge.nationality` means that the effect of `wine.origin` variable on the response variable is different at different values of the `judge.nationality` variable. Adding a term to the model in which the two predictor variables are multiplied tests this.
+
+### Priors
+Rationale:
+
+My rational is that I pick a number after looking at the levels of the variable which is there is 4 options. 
+
+### Fit
+
+```{r}
+levels(Wines2012$Origin_Judge)
+```
+
+```{r}
+wine_model_list <- alist(
+  score.std ~dnorm(mu, sigma),
+  mu <- b1[Origin_Judge_ix],
+  b1[Origin_Judge_ix] ~ dnorm(0, 0.25),
+  sigma ~ dlnorm(0,1)
+)
+
+```
+```{r}
+wine_int_model <- quap(
+  flist = wine_model_list,
+  data = Wines2012
+)
+```
+
+```{r}
+wine_ps <- extract.samples(wine_int_model) |>
+  data.frame()
+glimpse(wine_ps)
+```
+
+```{r}
+wine_ps_plot <- pivot_longer(wine_ps, cols = everything())
+glimpse(wine_ps_plot)
+```
+
+
+```{r}
+gf_dens(~value, data = wine_ps_plot) |>
+  gf_facet_wrap(~name, scales = "free_y")
+```
+
+```{r}
+gf_dens(~value, color = ~name, data = wine_ps_plot, size = 2)
+```
+```{r}
+levels(Wines2012$Origin_Judge)
+```
+
+### Interpret
+
+Based on the plot, when the origin is USA and the judge is from france, it has the lowest value for the score.std whereas the highest value goes to the origin other than USA and USA judge. 
