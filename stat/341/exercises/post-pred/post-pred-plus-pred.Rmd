@@ -118,13 +118,6 @@ $$\beta_0 \sim \text{Normal}(30,20)$$
 $$\beta_1 \sim \text{Normal}(20, 10)$$
 $$\sigma \sim \text{Normal}(15,20)$$
 
-Now, the *first two* lines of the description state  the structure of the model and tell how the likelihood will be determined. The last three are all priors.
-
-#### Question: Can you state in words what each line of the description means? For priors, include statements in terms of income dollars, people, etc.
-
-#### Question: What's with the $i$ subscripts?
-
-#### Question: $\text{Normal}(0,\sigma)$ is often considered an "uninformative" prior for $\beta_1$. Can you explain why, in words? Why didn't I use it here?
 
 #### Task: Generate  a  prior predictive distribution for this model. (Start with the code above for the *posterior* predictive distribution -- but you'll need to  generate  your own draws from the priors instead of starting with a posterior sample.) Describe (or implement) any changes you think are needed.
 
