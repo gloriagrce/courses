@@ -1,0 +1,114 @@
+---
+title: "homework 8"
+author: "STAT 341, Mar 28, 2023"
+date: ""
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_download: true
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, message=FALSE}
+library(faraway)
+library(tidyverse)
+library(rethinking)
+library(CalvinBayes)
+library(tidybayes)
+library(rstan)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 9E4 
+
+The actual number of samples is the number of draws we make from the posterior distribution. These draws may be autocorrelated, so the effective number of samples is an estimate of the number of completely independent (i.e., uncorrelated) draws that would contain the same amount of information. As autocorrelation increases, the number of effective samples decreases. Usually, `n_eff` will be smaller than the actual number of samples. However, there are times when Stan can make better than independent draws, which would result in an `n_eff` great than the actual number of samples.
+
+## 9E5
+
+The `Rhat` should approach 1 from above. 
+
+## 9E6
+
+
+## 9E7
+
+## 9M3
+
+### data
+```{r}
+library(rethinking)
+data("Wines2012")
+Wines2012 <- Wines2012 |>
+  # make a standardized version of the score variable
+  mutate(score_std = as.numeric(scale(score)),
+         # categorical versions of some variables originally coded 0/1
+         wine.origin = ifelse(wine.amer == 1, 'USA', 'Other'),
+         judge.nationality = ifelse(judge.amer == 1, 'USA', 'France'),
+         # numeric index versions of the same categorical variables
+         origin.ix = as.numeric(factor(wine.origin)),
+         judge.ix = as.numeric(factor(judge.nationality))
+         )
+
+```
+```{r}
+stan_data <- compose_data(Wines2012)
+```
+
+```{r}
+Wines2012 <- Wines2012 |>
+  mutate(Origin_Judge = interaction(wine.origin, judge.nationality),
+         Origin_Judge_ix = as.numeric(Origin_Judge)) |>
+  drop_na(Origin_Judge, score_std)
+glimpse(Wines2012)
+```
+
+```{r}
+stan_program <- '
+data {
+// number of observations
+int<lower=1> n;
+// response
+vector[n] score_std;
+// categorical predictor,"Other.France" or "USA.France" or "Other.USA" or   "USA.USA" 
+array[n] int Origin_Judge;
+
+}
+parameters {
+// std of response, single continuous value
+real<lower=0> sigma;
+// vector of two numeric values: intercepts for Other.France, USA.France, Other.USA, and USA.USA 
+vector[4] a;
+// vector of two numeric values: slopes for Other.France, USA.France, Other.USA, and USA.USA
+vector[4] b;
+}
+
+model {
+// vector of n values: expected score_std for each observation
+vector[n] mu;
+// loop over the n cases in the dataset to estimate mu_i values
+for (i in 1:n) {
+// expected score_std is region-specific intercept +
+mu[i] = a[Origin_Judge[i]];
+}
+// prior for both intercepts
+a ~ normal(0, 0.25);
+// prior for sigma
+sigma ~ normal(0,1);
+// defining likelihood in terms of mus and sigma
+score_std ~ normal(mu, sigma);
+}
+'
+```
+```{r}
+wine_model <- stan(model_code = stan_program,
+                     data = stan_data,
+                     iter = 2000,
+                     warmup = floor(iter/2),
+                     chains = 4,
+                     control = list(adapt_delta = 0.8))
+
+```
+
+I can't run the model, and I sent prof an email regarding of it and haven't got any response back. I couldn't figure out how to make it work but this is what I have. 
