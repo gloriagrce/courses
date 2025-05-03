@@ -1,0 +1,137 @@
+---
+title: "Interaction Example"
+author: "STAT 341, Spring 2023"
+date: "2023-03-17"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(rethinking)
+library(ggformula)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+
+We will use data from a 2019 paper by Adam Dolezal and colleagues, entitled *Interacting stressors matter: diet quality and virus infection in honeybee health* (<https://doi.org/10.1098/rsos.181803>). Its abstract reads:
+
+>>Honeybee population declines have been linked to multiple stressors, including reduced diet diversity and increased exposure to understudied viruses. Despite interest in these factors, few experimental studies have explored the interaction between diet diversity and viral infection in honeybees... In laboratory experiments, we found that high-quality diets have the potential to reduce mortality in the face of infection with Israeli acute paralysis virus (IAPV).
+
+
+```{r, message = FALSE, warning = FALSE}
+bees <- read_csv('https://sldr.netlify.app/data/bee-virus.csv') |>
+  rename(Cage_id = `Cage Number`,
+         Virus = `Virus Treatment`,
+         Food = `Pollen Treatment`,
+         Experiment_id = `Experimental replicate code`,
+         Mortality = `72 hpi proportion mortality`)
+
+glimpse(bees)
+```
+
+Forget you've seen this when you are specifying priors...but, to review what it means for the effect of `Virus` and the effect of `Food` to interact:
+
+```{r}
+gf_boxplot(Mortality ~ Virus | Food, data = bees)
+```
+
+If food is "None" that is low-quality food with no pollen added (the other kinds have pollen, with "Poly" being the highest quality).  
+
+Some cages were infected with virus, and some were not. 
+
+Do bees on different diets take a *different* survival hit when infected with the virus?
+
+We are going to need a coefficient for every COMBINATION of `Virus` and `Food`. To facilitate this, let's create a new variable *combining* both. We will also make a numeric index version of it.
+
+```{r}
+bees <- bees |>
+  mutate(Virus_Food = interaction(Virus, Food),
+         Virus_Food_ix = as.numeric(Virus_Food)) |>
+  drop_na(Virus_Food, Mortality)
+glimpse(bees)
+```
+
+Which numbers go with which combinations of categories?? If you ask for the `levels` of the synthetic (combo) variable, R will return them in order starting with number 1.
+
+```{r}
+levels(bees$Virus_Food)
+```
+
+```{r}
+bee_model_list <- alist(
+  Mortality ~dnorm(mu, sigma),
+  mu <- b1[Virus_Food_ix], # why is it ok to have no intercept?
+  b1[Virus_Food_ix] ~ dnorm(0, 0.25),
+  sigma ~ dlnorm(0, 1)
+)
+
+bee_int_model <- quap(
+  flist = bee_model_list,
+  data = bees
+)
+```
+
+```{r}
+bee_ps <- extract.samples(bee_int_model) |>
+  data.frame()
+glimpse(bee_ps)
+
+# plot them ALL
+
+bee_ps_plot <- pivot_longer(bee_ps, cols = everything())
+glimpse(bee_ps_plot)
+
+gf_dens(~value, data = bee_ps_plot) |>
+  gf_facet_wrap(~name, scales = "free_y")
+
+gf_dens(~value, color = ~name, data = bee_ps_plot, size = 2)
+```
+
+Which pairs of conditions would you most want to compare? Which are obviously different, obviously not, in between?
+
+
+## What about categorical + quantitative?
+
+We can also interact a categorical and a quantitative variable. Then, what we essentially want is a *different* slope for the quantitative variable for each category.
+
+*We don't have a quantitative variable in our dataset. I am adding a fake one ONLY to show how the code would work to fit a C-Q interaction model.
+
+```{r}
+bees <- bees |>
+  mutate(fake_qvar = rnorm(n = nrow(bees), mean = 0, sd = 1),
+         Virus_ix = as.numeric(factor(Virus)))
+```
+
+Now, fit a model with and effect of `Virus` and *also* a different slope for `fake_qvar` for each level of virus: one slope if there was no virus infection, and a different slope if there *was* viral infection.
+
+```{r}
+bee_qc_model_list <- alist(
+  Mortality ~dnorm(mu, sigma),
+  mu <- b1[Virus_ix] + b2[Virus_ix] * fake_qvar,
+  b1[Virus_ix] ~ dunif(0, 1),
+  b2[Virus_ix] ~ dnorm(0, 0.1),
+  sigma ~ dlnorm(0, 1)
+)
+
+bee_qc_int_model <- quap(
+  flist = bee_qc_model_list,
+  data = bees
+)
+```
+
+## What about 2 quantitative variables?
+
+Probably just don't go there. It's very hard to make sense of. But there's an example in Chapter 8 of your book.
+
+## Going Further
+
+What about also fitting a model with effects of `Virus` and `Food` (or one, or the other) but not interaction? What do the posteriors and/or model comparison results tell you about whether there's really an interaction here?
+
+Can you guess what the results will be based on the interaction model already fitted?
+
+Also, how would you think about presenting the posterior of this model with the interaction?
