@@ -153,19 +153,8 @@ gf_line(value ~ p_grid,
 
 ###  Questions
 
-1. What happens if you make the number of conjectured values of $p$ (the fine-ness of the grid) smaller, or larger? 
+What happens if you make the number of conjectured values of $p$ (the fine-ness of the grid) smaller, or larger? 
  If I make it smaller, the trend would appear to be more spikey whereas the larger the number of conjecture valuer, the higher the number of dots and it became more fine.
 
-Re-run your code a few times to see what happens with very different grid resolutions.
-
-2. (*relies on previous R experience*) What if you use a different prior - how do results change? If I use a different prior, 
-3. (*advanced/tricky*) Why are the posterior, the prior and the likelihood in our plot different heights? Because for prior since it is determined as 1, it's different from the others. For posterior, since it is the probability of model being right given the probability of data, it have different height with the likelihood. 
-
-Why doesn't that bother Prof DR a lot?
-
-4. What happens if you use a smaller dataset (just the initial observations instead of all of them)? The probability increase.  A larger one? The probability would decrease.
-
-###  What's next?
-The grid approach is simple, but really limited: the grid resolution you'd need to get  the precision you want in your posterior estimate might crash your computer, for one thing. (Another way of putting it is that grid search is slow and inefficient.) We will learn more efficient ways, soon!
 
 *Note: thanks to <https://bookdown.org/content/4857/> for base for the code used here.*
