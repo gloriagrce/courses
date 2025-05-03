@@ -1,0 +1,100 @@
+---
+title: "Stat 245 -- CI with link function"
+author: "A. Student"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    fig_height: 2.2
+    fig_width: 4
+  pdf_document:
+    fig_height: 2.2
+    fig_width: 4
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+library(glmmTMB)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+## Data 
+
+```{r}
+sscrime <- read_csv('https://sldr.netlify.app/data/sscrime.csv') |>
+  mutate(Location = fct_relevel(Location, 'City', 'Town', 'Urban Fringe', 'Rural'),
+         SecurityCameras = factor(SecurityCameras))
+```
+
+```{r}
+theft_nb1 <- glmmTMB(Thefts ~ LockedGates + Lockers * SecurityCameras+ Location + offset(log(NEnrollment)), data = sscrime,
+                     family = nbinom1(link = 'log'))
+```
+
+```{r}
+hyp_data <- expand.grid(LockedGates = c('yes', 'no'),
+                        Lockers = c('yes', 'no'),
+                        Location = 'Town',
+                        SecurityCameras = c('yes', 'no'),
+                        NEnrollment = 1000)
+```
+
+```{r}
+hyp_data1 <- expand.grid(LockedGates = 'no',
+                        Lockers = c('no', 'yes'), 
+                        Location = 'Town',
+                        SecurityCameras = c('no', 'yes'),
+                        NEnrollment = 1000)
+```
+
+
+
+```{r}
+theft_preds <- predict(theft_nb1,
+                       newdata = hyp_data1,
+                       type = 'link',
+                       se.fit = TRUE)
+
+```
+
+```{r}
+hyp_data1 <- hyp_data1 |>
+  mutate(pred = exp(theft_preds$fit),
+         ci_low = exp(theft_preds$fit - 1.96*theft_preds$se.fit),
+         ci_up = exp(theft_preds$fit + 1.96*theft_preds$se.fit))
+```
+
+```{r}
+gf_point(pred ~ Lockers | SecurityCameras,
+         data = hyp_data1) |>
+  gf_errorbar(ci_low + ci_up ~ Lockers) |>
+  gf_labs(y = 'No. Thefts per 1,000')
+```
+
+```{r}
+gf_point(pred ~ Lockers,
+         data = hyp_data1) |>
+  gf_errorbar(ci_low + ci_up ~ Lockers, 
+              color =~SecurityCameras,
+              position = position_dodge(0.9)) |>
+  gf_labs(y = 'No. Thefts per 1,000')
+```
+
+
+
+
+  
