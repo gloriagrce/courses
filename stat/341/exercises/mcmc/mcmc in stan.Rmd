@@ -158,24 +158,3 @@ score_std ~ normal(mu, sigma);
 }
 '
 ```
-
-
-DOESN'T WORK 
-
-```{r}
-# fit the model defined above to the stan_data on ruggedness and GDP
-wine_model <- stan(model_code = stan_program, data = stan_data)
-
-
-```
-
-```{r}
-wine_model <- stan(model_code = stan_program,
-                     data = stan_data,
-                     iter = 2000,
-                     warmup = floor(iter/2),
-                     chains = 4,
-                     control = list(adapt_delta = 0.8))
-
-```
-
