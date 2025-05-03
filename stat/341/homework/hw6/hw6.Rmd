@@ -1,0 +1,131 @@
+---
+title: "Stat 341 -- Homework 6"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  pdf_document: default
+  html_document:
+    toc: true
+    toc_float: true
+    code_download: true
+---
+
+```{r setup, include=FALSE, message=FALSE}
+library(faraway)
+library(rethinking)
+library(CalvinBayes)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+<!-- A few math abbreviations -->
+
+\newcommand{\Prob}{\operatorname{Pr}}
+\newcommand{\Binom}{\operatorname{Binom}}
+\newcommand{\Unif}{\operatorname{Unif}}
+\newcommand{\Triangle}{\operatorname{Triangle}}
+\newcommand{\Norm}{\operatorname{Norm}}
+\newcommand{\Beta}{\operatorname{Beta}}
+\newcommand{\E}{\operatorname{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\SD}{\operatorname{SD}}
+
+## Data
+
+```{r}
+data(foxes)
+glimpse(foxes)
+```
+
+## Model Fitting
+
+```{r scale variable}
+foxes <- foxes |>
+  mutate(avgfood_scaled = as.numeric(scale(avgfood)))
+```
+
+### avgfood + groupsize + area
+
+```{r}
+model1 <- quap(
+  flist = alist(
+    weight ~ dnorm(mu, sigma),
+    mu <- b0 + b1 * avgfood + b2 * groupsize + b3 * area,
+    b0 ~ dnorm(4,1),
+    b1 ~ dnorm(0.5,0.1),
+    b2 ~ dnorm(4,0.5),
+    b3 ~ dnorm(3,1),
+    sigma ~ dnorm(1.5, 2)
+  ),
+  data = foxes)
+```
+
+
+### avgfood + groupsize
+
+```{r}
+model2 <- quap(
+  flist = alist(
+    weight ~ dnorm(mu, sigma),
+    mu <- b0 + b1 * avgfood + b2 * groupsize,
+    b0 ~ dnorm(4,1),
+    b1 ~ dnorm(0.5,0.1),
+    b2 ~ dnorm(5,0.5),
+    sigma ~ dnorm(1.5, 2)
+  ),
+  data = foxes)
+```
+
+### groupsize + area
+
+```{r}
+model3 <- quap(
+  flist = alist(
+    weight ~ dnorm(mu, sigma),
+    mu <- b0 + b1 * groupsize + b2 * area,
+    b0 ~ dnorm(4,1),
+    b1 ~ dnorm(4,0.5),
+    b2 ~ dnorm(3,1),
+    sigma ~ dnorm(1.5, 2)
+  ),
+  data = foxes)
+```
+
+### avgfood 
+
+```{r}
+model4 <- quap(
+  flist = alist(
+    weight ~ dnorm(mu, sigma),
+    mu <- b0 + b1 * avgfood,
+    b0 ~ dnorm(4,1),
+    b1 ~ dnorm(0.5,0.1),
+    sigma ~ dnorm(1.5, 2)
+  ),
+  data = foxes)
+```
+
+### area
+
+```{r}
+model5 <- quap(
+  flist = alist(
+    weight ~ dnorm(mu, sigma),
+    mu <- b0 + b1 * area,
+    b0 ~ dnorm(4,1),
+    b1 ~ dnorm(3,1),
+    sigma ~ dnorm(1.5, 2)
+  ),
+  data = foxes)
+```
+
+## Computing the WAIC
+
+```{r}
+rethinking::compare(model1, model2, model3, model4, model5, func=WAIC)
+```
+
+
+## Explanation
+
+Based on the WAIC results of 5 different models, since the smaller WAIC is the better, model1 is the best out of all the models. This can be concluded that including all three predictors of avgfood, groupsize, and area to see the results of weight is the best than only using one or two predictors. 
