@@ -1,0 +1,183 @@
+---
+title: "Linear Model Practice"
+author: "STAT 341, Feb. 13, 2023"
+date: ""
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_download: true
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, message=FALSE}
+library(faraway)
+library(tidyverse)
+library(rethinking)
+library(CalvinBayes)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Cake! (Chocolate, of course.) 
+An industrious grad student studied the effect of different recipes and baking conditions on the breaking angle of cake (this is the angle to which a slice can be bent before it breaks in two). The data are in package `faraway`.
+
+```{r }
+library(faraway)
+head(choccake)
+
+choccake
+```
+
+## Response and Predictor Variable
+
+Response: breakang
+Main predictor: temp
+
+The reason I chose `temp` as my main predictor is because since the grad student is interested in studying the effect between recipe and breaking, I wanted to see whether the recipe affect it. 
+
+
+## Causal Diagram
+
+```{r}
+library(dagitty)
+library(CalvinBayes)
+```
+
+```{r}
+# create the DAG object
+causal_diagram_1 <- dagitty("dag{
+  temp -> breakang;
+  recipe -> breakang;
+  batch -> breakang
+}")
+# plot it
+gg_dag(causal_diagram_1)
+```
+
+Based on the causal diagram, we think that it would be best that 
+
+## Description of model 
+
+Recall our model is for `household_annual_income` in thousands of Fijian dollars:
+
+$$\text{breaking angle}_i \sim \text{Normal}(\mu_i, \sigma)$$
+
+
+$$\mu_i = \beta_0 + \beta_1 * \text{temp}_i$$
+
+$$\beta_0 \sim \text{Normal}(30,20)$$
+$$\beta_1 \sim \text{Normal}(0.1, 0.05)$$
+
+$$\sigma \sim \text{Normal}(\text{mean}_2 = 10, \text{sd}_2 = 20)$$
+
+## Check at the Data
+
+```{r}
+gf_point(breakang ~ temp, data = choccake)
+```
+
+## Prior Predictive Check 
+
+```{r}
+b0 = rnorm(1,mean = 30, sd = 20)
+b1 = rnorm(1,mean = 0.1, sd = 0.05)
+
+simulated_breakang <- b0 + b1 * choccake$temp
+
+gf_point(simulated_breakang ~ temp, data = choccake)
+```
+
+
+## Fit your model 
+
+```{r}
+model_descrip <- alist(
+  # note variable name has to match actual data variable name
+  breakang ~ dnorm(mu, sigma),
+  mu ~ b0 + b1 * temp,
+  b0 ~ dnorm(30,20),
+  b1 ~ dnorm(0.1,0.05),
+  sigma ~ dnorm(mean = 10, sd = 20)
+)
+
+quap_breakang <- quap(flist = model_descrip,
+                          data = choccake)
+quap_breakang_sample <- extract.samples(quap_breakang, n = 100)
+
+```
+
+
+## Graph Posterior(s)
+
+```{r}
+gf_dens(~b0, data = quap_breakang_sample)
+```
+
+```{r}
+gf_dens(~b1, data = quap_breakang_sample)
+```
+
+```{r}
+gf_dens(~sigma, data = quap_breakang_sample)
+```
+
+## Lines
+
+```{r}
+gf_point(breakang ~ temp, 
+         data = choccake,
+         alpha = 0.5) |>
+  gf_abline( # draws "line"s given "a" (slope) and "b" (intercept)
+    slope = ~b1, # draws one line for each row of psamp
+    intercept = ~b0,
+    data =  quap_breakang_sample,
+    alpha = 0.2, # closer to 0 = more transparent
+    linewidth = 0.1 # smaller = thinner
+  )
+```
+
+## Posterior Predictive Distribution
+
+```{r}
+quap_breakang_sample <- quap_breakang_sample |>
+  # add row numbers to identify each draw from the posterior
+  mutate(sim_id = c(1:nrow(quap_breakang_sample))) |>
+  rowwise()  |> # one simulation per draw from posteriors
+  mutate(
+    # mean_condition is the expected response
+    # it's a list with one value per row of original data, `bridges`
+    avg_break_ang = list(b0 + b1 * choccake$temp),
+    # store predictor data too to make graphs easier later
+    temp_new = list(choccake$temp)) |>
+  mutate(
+    # use sigma to simulate how far datapoints are from expected response 
+    sim_condition = list(avg_break_ang +
+                           rnorm(n = nrow(choccake), mean = 0, sd = sigma))
+    ) |>
+  unnest(cols = c(temp_new, avg_break_ang, sim_condition)) |>
+  ungroup()
+```
+
+```{r}
+gf_point(sim_condition ~ temp_new | sim_id,
+         data  = quap_breakang_sample |> filter(sim_id <= 10),
+         alpha = 0.2)
+  # dashed lines show ranges observed in real data
+  # (not needed if there are not lower/upper bounds on possible values of response)
+  
+```
+
+```{r}
+gf_point(breakang ~ temp, data = choccake)
+```
+
+```{r}
+gf_density2d_filled(sim_condition ~ temp_new, 
+                    data  = quap_breakang_sample) |>
+  gf_theme(scale_fill_grey('')) |> # use greyscale color palette
+  gf_refine(guides(fill = FALSE)) |> # don't show color legend
+  # (optional) add the real data
+  gf_point(breakang ~ temp, data =  choccake,
+           size = 0.5, alpha = 0.05) # VERY nearly transparent
+```
+
