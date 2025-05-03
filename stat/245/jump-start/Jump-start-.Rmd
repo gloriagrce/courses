@@ -1,0 +1,78 @@
+---
+title: "Stat 245 -- RR Studio Jump Start"
+author: "Gloria Grace"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  pdf_document:
+    fig_height: 2.2
+    fig_width: 4
+  html_document:
+    fig_height: 2.2
+    fig_width: 4
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than  reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+## Read in Data
+
+  Data that is provided by World Renew: <https://stacyderuiter.github.io/stat245-2022/world-renew-data-description.html>
+  
+```{r}
+sldata <- read_csv('sustainable-livelihoods.csv')
+```
+
+## Question
+
+I am interested in knowing the relationship and the affect of `Business_Plan` on `Management_Confidence` and `Gender`.
+
+Does business plan have an effect or make a difference in management confidence? 
+
+
+## Answer
+
+```{r graph, fig.height= 4, fig.width=6}
+gf_bar(~ Management_Confidence,
+       fill = ~ Gender ,
+       data = sldata,
+       position = 'dodge') %>% 
+  gf_facet_grid(~ Business_Plan) %>% 
+  gf_labs(title = "Confidence and Plan association",
+          x = 'Confidence') %>% 
+   gf_theme(scale_fill_brewer(palette = 'Dark2'))
+```
+
+## Major Choices Justification
+
+
+The first major design choice that I decided on was doing a side-by-side bar graph because all my variables are categorical variables. Instead of a stacked bar graph, I used this by also learning and refreshed my mind from the tutorials that through side-by-side graphs it is easier to compare the count better. Besides that, I couldn't find a way to change the count to proportions when I tried making a stacked bar graph which led to this option. 
+
+The second major design choice is to do a facet. By doing a facet, the graph is split based on the category that I assigned it to and I want to make it easier for people to compare and see the significant difference between who has a plan and who doesn't. 
+
+The last major design that I want to also justify is the variable placements (orientation). I wanted to facet the business plan because I want to show the major effect of whether a business plan has on people's confidence. For the gender categorical variable, its main purpose is to group it by gender and show the count of people.
+
+
+## Key Story or Message
+
+The main message that the figure shows is that people without a plan have a higher number of not confident which sit in the 150 to 200 range compares to the ones who do have a plan.
+
+## Critique
+
+  One thing that I would still like to change and improven if I have the skill is change the label for the facets and discover different scales for the count. For example, would it be better if the no plan category's scale be fitted to the graph or would it be better to stay as is.  
