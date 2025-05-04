@@ -1,13 +1,17 @@
 ## Courses
 
-Here are some of the relevant courses I've completed, showcasing my expertise in data science, statistics, and computer science.
+These are relevant courses I have completed which showcase my expertise and knowledge in data science, statistics, and computer science.
 
 ### Data Science
-- [Predictive Analysis](https://github.com/YourUsername/Courses/Data_Science/Predictive_Analysis)  
-- [Visualizing Data and Models](https://github.com/YourUsername/Courses/Data_Science/Visualizing_Data_Models)  
+- [Foundations of Data Sci and Analytics](https://github.com/gloriagrce/courses/tree/main/data/100)
+- [Predictive Analysis](https://github.com/gloriagrce/courses/tree/main/data/202)  
+- [Visualizing Data and Models](https://github.com/gloriagrce/data304-web)  
 
 ### Statistics
-- [Applied Data Analysis](https://github.com/YourUsername/Courses/Statistics/Applied_Data_Analysis)  
+- [Applied Data Analysis](https://github.com/gloriagrce/courses/tree/main/stat/245)
+- [Computational Bayesian Stats](https://github.com/gloriagrce/courses/tree/main/stat/341)  
 
 ### Computer Science
-- [Machine Learning](https://github.com/YourUsername/Courses/Computer_Science/Machine_Learning)
+- [Database Management Systems](https://github.com/gloriagrce/courses/tree/main/cs/342)
+- [Artificial Intelligence](https://github.com/gloriagrce/courses/tree/main/cs/375)
+- [Machine Learning](https://github.com/gloriagrce/courses/tree/main/cs/376)
